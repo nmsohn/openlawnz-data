@@ -13,6 +13,8 @@ const download = require("download");
 const fs = require("fs");
 const async = require("async");
 const path = require("path");
+const logging = require("./loggingFunctions");
+var logArray = [];
 
 // TODO: Fix uri encode - need to add !, (, ), ', _, * and . to encodeURIcomponent
 const encodeURIfix = str => {
@@ -55,7 +57,12 @@ const spawnCaseProcessor = (cases, cb) => {
 
 	const encodedCommand = encodeURIfix(JSON.stringify(cases));
 
-	const cmd = `node index.js --cases=${encodedCommand}`;
+	var cmd = `node index.js --cases=${encodedCommand}`;
+
+	if (logArray.exportPath) {
+		cmd += ` --exportPath=${logArray.exportPath}`;
+	}
+	
 
 	const e = exec(
 		cmd,
@@ -80,7 +87,9 @@ const spawnCaseProcessor = (cases, cb) => {
 	});
 };
 
-const run = cb => {
+const run = (logArr, cb) => {
+	logArray = logArr;
+
 	console.log("Process MOJ Data");
 	download(jsonURL).then(data => {
 		data = JSON.parse(data.toString()).response.docs;
