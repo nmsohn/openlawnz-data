@@ -68,8 +68,8 @@ const spawnCaseProcessor = (cases, cb) => {
 		cmd,
 		{ cwd: "../pdfToDBProcessor/" },
 		(err, stdout, stderr) => {
-			if (err || stderr) {
-				cb(err || stderr);
+			if (err) {
+				cb(err);
 				return;
 			}
 		}
@@ -80,6 +80,7 @@ const spawnCaseProcessor = (cases, cb) => {
 			console.log("Delay 10 seconds before next batch");
 			setTimeout(() => {
 				cb();
+				return;
 			}, 10000);
 		} else {
 			console.log(data);

@@ -87,6 +87,7 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 						   })
 						   .catch(err => {
 								cbInner(err,"Error with pdf download url");
+								return;
 						   });
 				   },
 	   
@@ -96,7 +97,8 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 					cbInner => {
 					   	const pathtopdf = path.resolve("../xpdf/bin64/pdftotext");
 					   	const pathtocache = path.resolve(cacheDir);
-					   	let case_text = "Unprocessed";
+						let case_text = "Unprocessed";
+						caseItem.case_text = case_text;
 	   
 						let convertError = null;
 						
@@ -122,9 +124,11 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 							console.log("Unable to salvage case text data")
 							if (convertError) {
 								cbInner(convertError,"Error with pdf conversion, unable to salvage any text data");
+								return;
 							}
 							else {
 								cbInner(err,"Error reading pdf conversion output");
+								return;
 							}
 						}
 
@@ -157,6 +161,7 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 							err => {
 								if (err) {
 									cbInner(err,"Error s3 upload");
+									return;
 								}
 								cbInner()
 							}
