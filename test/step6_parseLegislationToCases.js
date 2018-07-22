@@ -101,7 +101,6 @@ describe('Full, basic references: "in the", under the", and "of the" with follow
 				return;
 			}
 			try {
-				// fails due to currently not matching "in the" - only "under" and "of"
 				expect(results.length).equal(3);
 			} catch (ex) {
 				done(ex);
@@ -117,20 +116,10 @@ describe('Full, basic references: "in the", under the", and "of the" with follow
 				done(err);
 				return;
 			}
-
 			try {
-				results.should.contain.a.thing.with.property(
-					"title",
-					"Protection of Personal and Property Rights Act 1988"
-				);
-				results.should.contain.a.thing.with.property(
-					"title",
-					"Evidence Act 2006"
-				);
-				results.should.contain.a.thing.with.property(
-					"title",
-					"Care of Children Act 2004"
-				);
+				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988")).equal(true);
+				expect(results.some(ref => ref.title === "Evidence Act 2006")).equal(true);
+				expect(results.some(ref => ref.title === "Care of Children Act 2004")).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -140,15 +129,22 @@ describe('Full, basic references: "in the", under the", and "of the" with follow
 		});
 	});
 
-	it("Should return section 5 of the PPPR Act, and sections 57 and 58 of the Evidence Act", done => {
+	it("Should return section 5 of the PPPR Act, sections 57 and 58 of the Evidence Act, s47 of the Care of Children Act", done => {
 		getTestResult("1-basic-references.txt", (err, results) => {
 			if (err) {
 				done(err);
 				return;
 			}
 			try {
-				// test not implemented
-				console.error("test not implemented yet");
+				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
+					ref.sections.some(section => section.id == "5" && section.count === 1))).equal(true);
+
+				expect(results.some(ref => ref.title === "Care of Children Act 2004" &&
+				ref.sections.some(section => section.id == "47A" && section.count === 1))).equal(true);
+
+				expect(results.some(ref => ref.title === "Evidence Act 2006" &&
+				ref.sections.some(section => section.id == "57" && section.count === 1) &&
+				ref.sections.some(section => section.id == "58" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -182,8 +178,8 @@ describe('Testing "the Act" definition', function() {
 				return;
 			}
 			try {
-				// test not implemented
-				console.error("test not implemented yet");
+				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
+				ref.sections.some(section => section.id == "5" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -219,8 +215,12 @@ describe("Testing defined terms", function() {
 				return;
 			}
 			try {
-				// test not implemented
-				console.error("test not implemented yet");
+				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
+				ref.sections.some(section => section.id == "5" && section.count === 1) &&
+				ref.sections.some(section => section.id == "6" && section.count === 1))).equal(true);
+				expect(results.some(ref => ref.title === "Care of Children Act 2004" &&
+				ref.sections.some(section => section.id == "48" && section.count === 1))).equal(true);
+				
 			} catch (ex) {
 				done(ex);
 				return;
@@ -252,8 +252,8 @@ describe("Testing subsequent reference", function() {
 				return;
 			}
 			try {
-				// test not implemented
-				console.error("test not implemented yet");
+				expect(results.some(ref => ref.title === "Evidence Act 2006" &&
+				ref.sections.some(section => section.id == "12" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -287,8 +287,10 @@ describe("Testing subsequent reference with defined terms", function() {
 				return;
 			}
 			try {
-				// test not implemented
-				console.error("test not implemented yet");
+				expect(results.some(ref => ref.title === "Care of Children Act 2004" &&
+				ref.sections.some(section => section.id == "48" && section.count === 1))).equal(true);
+				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
+				ref.sections.some(section => section.id == "11" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -342,8 +344,11 @@ describe("Testing delayed reference", function() {
 				return;
 			}
 			try {
-				// test not implemented
-				console.error("test not implemented yet");
+				expect(results.some(ref => ref.title === "Evidence Act 2006" &&
+				ref.sections.some(section => section.id == "5" && section.count === 1) &&
+				ref.sections.some(section => section.id == "6" && section.count === 1))).equal(true);
+				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
+				ref.sections.some(section => section.id == "11" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -376,8 +381,10 @@ describe("Testing missing years", function() {
 				return;
 			}
 			try {
-				// test not implemented
-				console.error("test not implemented yet");
+				expect(results.some(ref => ref.title === "Evidence Act 2006" &&
+				ref.sections.some(section => section.id == "57" && section.count === 1))).equal(true);
+				expect(results.some(ref => ref.title === "Contractual Remedies Act 1979" &&
+				ref.sections.some(section => section.id == "4" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -421,8 +428,14 @@ describe("Testing multiple sections and ranges", function() {
 				return;
 			}
 			try {
-				// test not implemented
-				console.error("test not implemented yet");
+				expect(results.some(ref => ref.title === "Fair Trading Act 1986" &&
+				ref.sections.some(section => section.id == "9" && section.count === 1) &&
+				ref.sections.some(section => section.id == "10" && section.count === 1) &&
+				ref.sections.some(section => section.id == "43" && section.count === 1) &&
+				ref.sections.some(section => section.id == "11" && section.count === 1) &&
+				ref.sections.some(section => section.id == "13" && section.count === 1) &&
+				ref.sections.some(section => section.id == "42" && section.count === 1) &&
+				ref.sections.some(section => section.id == "45" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -458,8 +471,13 @@ describe("Combination test, basic reference broken by subsections", function() {
 				return;
 			}
 			try {
-				// test not implemented
-				console.error("test not implemented yet");
+				expect(results.some(ref => ref.title === "Credit Contracts and Consumer Finance Act 2003" &&
+				ref.sections.some(section => section.id == "7" && section.count === 1) &&
+				ref.sections.some(section => section.id == "13" && section.count === 1) &&
+				ref.sections.some(section => section.id == "11" && section.count === 1))).equal(true);
+				expect(results.some(ref => ref.title === "Gambling Act 2003" &&
+				ref.sections.some(section => section.id == "15" && section.count === 1) &&
+				ref.sections.some(section => section.id == "308" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -500,8 +518,10 @@ describe("Footnotes", function() {
 				return;
 			}
 			try {
-				// test not implemented
-				console.error("test not implemented yet");
+				expect(results.some(ref => ref.title === "Insolvency Act 2006" &&
+				ref.sections.some(section => section.id == "17" && section.count === 3))).equal(true);
+				expect(results.some(ref => ref.title === "Gambling Act 2003" &&
+				ref.sections.some(section => section.id == "310" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
