@@ -1,19 +1,25 @@
 /**
- * Case to Case
+ * This module populates the 'cited_cases' table, by selecting cases with case texts, and matching citations of other cases
+ * within the case text. A relationship is established between the "case_origin" and "case_cited", which is stored
+ * in the 'cited_cases' table.
+ * 
+ * last updated 7/21/2018 by Matt Frost :
+ * changed the algorithm to pick out all citations from the case_text first using a regex match (much faster!).
+ * then, counts the number of each case_id sited, and stores this in the count column along with the 
+ * case relationship.
+ * Keyed table means that a replace instead of an insert is needed.
+ * 
  * @param MysqlConnection connection
  * @param {function} cb
  * 
- * last updated 7/21/2018 by Matt Frost
+ *
  */
-// populate the case_to_case table
-// that table has two fields - case_id_1 and case_id_2 both integers and foreign keys referencing ids in the cases table
-// case_id_1 is the referencing case
-// case_id_2 is the case being referenced
-const citation_reg = /\[[0-9]{4}\]\s[a-zA-Z]{1,7}\s[0-9]{0,6}[,;.\s]/g;
+
+const citation_reg = /((?:\[\d{4}\]\s*)(?:([a-zA-Z]{1,7}))(?:\s*(\w{1,6})))[,;.\s]/g;
+//const old_citation_reg = /\[[0-9]{4}\]\s[a-zA-Z]{1,7}\s*(\w{0,6})[,;.\s]/g
 const moment = require('moment')
 const run = (connection, cb) => {
 	var start = moment().unix()
-	var end;
 	console.log("Parse case to case");
 	console.log("started at " + start)
 	connection.query(
@@ -23,7 +29,7 @@ const run = (connection, cb) => {
 				cb(err);
 				return;
 			}
-			console.log("fetched tables in: " + (moment().unix() - start ) + " secs")
+			console.log("fetched tables in: " + (moment().unix() - start) + " secs")
 
 			var allCases = results[0];
 			var allCitations = results[1];
@@ -34,60 +40,78 @@ const run = (connection, cb) => {
 			var case_citations = {};
 			console.log("started matching")
 			/** 
-			 * Loop over cases, pull out all citations and 
+			 * Loop over cases, pull out all citations
 			 * 
 			 */
+			var totalcites = 0;
 			allCases.forEach(function (caseRow) {
 				// go through each case, check for blank text
 				if (!caseRow.case_text) {
 					return;
 				}
 				// regex searches for the format of a citation, grabs all valid sitations and maps them under the id of the case
-				// ACCOUNT For bad whitespace
 				var matches = caseRow.case_text.match(citation_reg);
 
 				// create map entry with key as the ID, all citations as body
 				if (matches) {
+					totalcites += matches.length
 					case_citations[caseRow.id] = matches
+
 				}
 			});
-			console.log("found regex in: " + (moment().unix() - start ) + " secs")
+			console.log(`found a total of ${totalcites} citations within texts`)
+			console.log("found regex in: " + (moment().unix() - start) + " secs")
 
 			// assuming no blank text, inside each case look at all citation records in the db
 			// see if any citations in the db are present in the case text
-			allCitations.forEach(function (citationRow) {
-				for (var key in case_citations) {
-					case_citations[key].forEach((caseCitation) => {
+			for (var key in case_citations) {
+				var count = 0;
+
+				mapped_count = {}
+				// loop over all citations within keyed case text
+				case_citations[key].forEach((caseCitation) => {
+					// loop over all citations strings from database
+					allCitations.forEach(function (citationRow) {
 						// match against caseRow.case_text, and only match if the ids are not identical (dont need to add a case's reference to itself)
 						if (citationRow.citation) {
-							caseCitation = caseCitation.slice(0,-1)
+
+							caseCitation = caseCitation.slice(0, -1)
 							caseCitation += ";"
-							// so indexOf returns if partial match of citation
-							// searching through full text for presence of a shorter citation eg [2017] NZHC 5, will return for 50, 51 etc and 500 and so on
-							// so add a period, space, comma and semicolon to the end of each citation and search for those instead
-							// very efficient, much fast
+							//remove white space(could be inconsistent)
+							caseCitation = caseCitation.replace(/\s/g, '')
+
+							// if the citation is a substring of multiple other cases, we need to account for this by "ending"
+							// the citation with a semicolon ;
 							var w = citationRow.citation.concat(";");
+							w = w.replace(/\s/g, '')
 
-						if ( caseCitation.indexOf(w) !== -1 && citationRow.case_id != key ) {
-							/** 
-							 * here, we need to check for duplicates already in the case_to_case table?
-							 * the script will likely be run regularly across the whole db (to account for new citations being added)
-							 * this will result in duplicate entries
-							 * UPDATE: put a key on (case_id_1, case_id_2)
-							*/
-							insertQueries.push(
-								"insert into case_to_case (case_id_1, case_id_2) values ('" +
-								key +
-								"', '" +
-								citationRow.case_id +
-								"')"
-							);
+							// map the count udner its case_id - can add to this if it encounters this ID again
+							if (caseCitation.indexOf(w) !== -1 && citationRow.case_id != key) {
+								if (mapped_count[citationRow.case_id]) {
+									mapped_count[citationRow.case_id] += 1;
+								} else {
+									mapped_count[citationRow.case_id] = 1;
+								}
+								count++;
+								/** 
+								 * here, we need to check for duplicates already in the case_to_case table?
+								 * the script will likely be run regularly across the whole db (to account for new citations being added)
+								 * this will result in duplicate entries
+								 * UPDATE: put a key on (case_id_1, case_id_2)
+								*/
+							}
+						}
+					});
 
-						}}
-					})
+				});
+				// replace current item in DB
+				for (var count_key in mapped_count) {
+					insertQueries.push(
+						`replace into cases_cited (case_origin, case_cited, citation_count) values ('${key}', '${count_key}', ' ${mapped_count[count_key]}')`
+					);
 				}
-			});
-			console.log("Created insert queries in: " + (moment().unix() - start ) + " secs")
+			}
+			console.log("Created insert queries in: " + (moment().unix() - start) + " secs")
 			console.log("Insert", insertQueries.length);
 			if (insertQueries.length > 0) {
 				connection.query(insertQueries.join(";"), function (
@@ -99,7 +123,7 @@ const run = (connection, cb) => {
 						cb(err);
 						return;
 					}
-					console.log("Finshed insert in: " + (moment().unix() - start ) + " secs")
+					console.log("Finshed insert in: " + (moment().unix() - start) + " secs")
 					cb();
 				});
 			} else {
