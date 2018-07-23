@@ -16,7 +16,7 @@ const step7 = require("./step7_updateSearchIndex");
 
 async.series(
 	[
-		//step1,
+		step1,
 		/**
 		 * Connect to DB
 		 */
@@ -29,11 +29,11 @@ async.series(
 				cb();
 			});
 		},
-		//step2.bind(this, connection),
-		//step3.bind(this, connection),
+		step2.bind(this, connection),
+		step3.bind(this, connection),
 		step4.bind(this, connection),
-		//step5.bind(this, connection),
-		//step6.bind(this, connection)
+		step5.bind(this, connection),
+		step6.bind(this, connection)
 		//step7
 	],
 	err => {
