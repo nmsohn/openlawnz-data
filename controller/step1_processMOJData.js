@@ -28,6 +28,7 @@ const encodeURIfix = str => {
 		.replace(/\./g, "%2E");
 };
 
+// Currently limited to 10 results for testing
 const casesPerInstance = 10;
 const maxRows = 10;
 const fromDate = "2016-2-27";

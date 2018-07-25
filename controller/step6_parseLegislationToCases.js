@@ -671,7 +671,7 @@ const run = (connection, cb) => {
 		{
 			cases: cb => {
 				// for testing, just get one case
-				connection.query("select * from cases where id = 186", function(
+				connection.query("select * from cases", function(
 					err,
 					results,
 					fields
@@ -713,16 +713,16 @@ const run = (connection, cb) => {
 			const insertQueries = [];
 
 			// for testing, stopping here to stop inserting into db
-			cb(null, caseLegislationReferences);
-			return;
+			//cb(null, caseLegislationReferences);
+			//return;
 
 			Object.keys(caseLegislationReferences).forEach(case_id => {
 				caseLegislationReferences[case_id].forEach(legislation => {
 					legislation.sections.forEach(section => {
 						insertQueries.push(
-							`insert into legislation_to_cases (legislation_id, section, case_id) values ("${
+							`insert into legislation_to_cases (legislation_id, section, case_id, count) values ("${
 								legislation.id
-							}", "${section}", "${case_id}")`
+							}", "${section.id}", "${case_id}", "${section.count}")`
 						);
 					});
 				});
