@@ -29,7 +29,7 @@ const run = (connection, cb) => {
 					return;
 				}
 
-				const case_text = JSON.stringify(row.case_text).substr(0, 300);
+				const case_text = JSON.stringify(row.case_text).substr(0, 550);
 				// regex for neutral citation
 				
 				let citation = case_text.match(regNeutralCite);
