@@ -104,10 +104,10 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 									existingCaseId = resultCase[0].id;
 									isValid = resultCase[0].is_valid === 1;
 									
-									if (inBucket && isValid) {
-										console.log("Case already processed successfully")
-										ignoreCase = true;
-									}
+									// if (inBucket && isValid) {
+										// console.log("Case already processed successfully")
+										// ignoreCase = true;
+									// }
 
 									cbInner();
 								});
@@ -130,7 +130,7 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 					   	}
 						   
 					   	// If pdf is already in bucket (and not processed), download from there not from MOJ
-						if (inBucket && !isValid) {
+						// if (inBucket && !isValid) {
 							s3.getObject(
 								{
 									Key: bucket_key
@@ -148,22 +148,22 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 								}
 								
 							);
-						}
+						// }
 						// Otherwise download from MOJ
-					   	else if (!inBucket) {
-							download(url)
-								.then(data => {
-									fs.writeFileSync(`${cacheDir}/${bucket_key}`, data);
-									cbInner();
-								})
-								.catch(err => {
-										cbInner(err,"Error with pdf download url (MOJ)");
-										return;
-								});
-						}
-						else {
-							cbInner();
-						}
+					   	// else if (!inBucket) {
+						// 	download(url)
+						// 		.then(data => {
+						// 			fs.writeFileSync(`${cacheDir}/${bucket_key}`, data);
+						// 			cbInner();
+						// 		})
+						// 		.catch(err => {
+						// 				cbInner(err,"Error with pdf download url (MOJ)");
+						// 				return;
+						// 		});
+						// }
+						// else {
+						// 	cbInner();
+						// }
 				   },
 	   
 				   /**
@@ -398,24 +398,24 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 				/**
 				 * Insert case citation into database
 				 */
-				cbInner => {
-					if (!ignoreCase) {
-						connection.query(
-							"INSERT INTO case_citations SET ?",
-							caseCitation,
-							function(err, result) {
-								if (err) {
-									cbInner(err,"Error inserting into case_citations table");
-									return;
-								}
-								cbInner();
-							}
-						);
-					}
-					else {
-						cbInner();
-					}
-				}
+				// cbInner => {
+				// 	if (!ignoreCase) {
+				// 		connection.query(
+				// 			"INSERT INTO case_citations SET ?",
+				// 			caseCitation,
+				// 			function(err, result) {
+				// 				if (err) {
+				// 					cbInner(err,"Error inserting into case_citations table");
+				// 					return;
+				// 				}
+				// 				cbInner();
+				// 			}
+				// 		);
+				// 	}
+				// 	else {
+				// 		cbInner();
+				// 	}
+				// }
 				
 				
 				],

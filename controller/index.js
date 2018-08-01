@@ -6,6 +6,7 @@ const async = require("async");
 
 const connection = require("../lib/db.js");
 
+const updateCaseText = require("./update_casetext");
 const step1 = require("./step1_processMOJData");
 const step2 = require("./step2_parseEmptyCitations");
 const step3 = require("./step3_parseCaseCitations");
@@ -24,7 +25,7 @@ logArray.exportPath = argv.exportPath;
 async.series(
 	[
 		
-		step1.bind(this,logArray),
+		//step1.bind(this,logArray),
 		/**
 		 * Connect to DB
 		 */
@@ -37,9 +38,10 @@ async.series(
 				cb();
 			});
 		},
-		step2.bind(this, connection),
-		step3.bind(this, connection),
-		step4.bind(this, connection),
+		updateCaseText.bind(this, connection),
+		//step2.bind(this, connection),
+		//step3.bind(this, connection),
+		//step4.bind(this, connection),
 		step5.bind(this, connection),
 		step6.bind(this, connection)
 		//step7

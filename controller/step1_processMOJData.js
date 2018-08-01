@@ -82,7 +82,7 @@ const spawnCaseProcessor = (cases, cb) => {
 			setTimeout(() => {
 				cb();
 				return;
-			}, 10000);
+			}, 1);
 		} else {
 			console.log(data);
 		}
