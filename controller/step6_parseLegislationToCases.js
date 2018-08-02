@@ -6,9 +6,13 @@
 const path = require("path");
 const async = require("async");
 const fs = require("fs");
+const util = require("util");
+const connection = require("../lib/db");
 require("dotenv").config({
 	path: path.resolve(__dirname + "/../") + "/.env"
 });
+const log4js = require('log4js');
+const logger = log4js.getLogger();
 
 /*------------------------------
  Helpers
@@ -181,16 +185,15 @@ const findFootnoteAtIndex = (
 	return returnVal;
 }
 
-const processCases = (cases, legislation) => {
+const processCases = (cases, legislation,cb) => {
 	let MAX_LEGISLATION_TITLE_WORDS_LENGTH = -1;
 
 	let caseLegislationReferences = {};
 	let failures = [];
 
 	// Iterate through each case text
-	cases.forEach(caseItem => {
-		console.log("Process case ", caseItem.id);
-
+	async.eachLimit(cases,1,(caseItem,callBack)=> {
+		logger.info("Process case ", caseItem.id);
 		try {
 			
 			// change curly brackets to straight
@@ -515,7 +518,7 @@ const processCases = (cases, legislation) => {
 										startWordIndex
 									].toLowerCase();
 								} catch (ex) {
-									console.log(ex);
+									logger.error(ex);
 									break;
 								}
 								allLegislationTitlesAndId = allLegislationTitlesAndId.filter(
@@ -637,7 +640,7 @@ const processCases = (cases, legislation) => {
 					accumulator + legislationReference.sections.length,
 				0
 			);
-			console.log(`> Found ${totalSections} unique legislation sections`);
+			logger.info(`> Found ${totalSections} unique legislation sections`);
 
 			if (totalSections > 0) {
 				caseLegislationReferences[
@@ -645,118 +648,114 @@ const processCases = (cases, legislation) => {
 				] = legislationReferences.filter(
 					legislationReference => legislationReference.sections.length > 0
 				);
-			}
 
+				async.eachLimit(caseLegislationReferences[caseItem.id],1,(legislation,callBack2) => {
+					
+
+						async.eachLimit(legislation.sections,1, (section,callBack1) => {
+							const connection = require("../lib/db");
+
+						
+
+							connection.query(`insert into legislation_to_cases (legislation_id, section, case_id, count) values ("${
+								legislation.id
+							}", "${section.id}", "${caseItem.id}", "${section.count}")`,function(
+								err,
+								results,
+								fields
+							) {
+								if (err) {
+									logger.error("Error inserting case " + caseItem.id + ": " + err);
+									//cb(err);
+									//return;
+								}
+								else {
+									logger.debug("Case " + caseItem.id + " insert successful")
+								}
+								callBack1();
+								
+							});
+					},err=>{
+						callBack2();
+					});
+				},
+				err=> {
+					callBack();
+				})
+			}
+			else {
+				callBack();
+			}
 		}
 		catch (ex) {
-			console.log("> Error encountered: " + ex);
-			failures.push({
-				failedCase: caseItem.id,
-				errorMessage: ex
-			});
+			logger.error("> Error encountered: " + ex);
+			callBack();
 		}
-	});
-
-	if (failures.length > 0) {
-		console.log(failures.length + " failures were encountered as follows. Parser results may be incomplete.");
-		console.log(failures);
-	}
-	return caseLegislationReferences;
+	 }, err=>{
+		console.log("done")
+		 
+		cb(null, caseLegislationReferences);
+		return caseLegislationReferences;
+	 } );
 };
 
 const run = (connection, cb) => {
-	console.log("Parse legislation to cases");
+	logger.info("Parse legislation to cases");
 
 	async.parallel(
-		{
-			cases: cb => {
-				// for testing, just get one case
-				connection.query("select * from cases", function(
-					err,
-					results,
-					fields
-				) {
-					if (err) {
-						cb(err);
-						return;
-					}
+	{
+		cases: cb => {
+			// for testing, just get one case
+			connection.query("SELECT * FROM cases WHERE id  NOT IN (SELECT DISTINCT case_id FROM legislation_to_cases)", function(
+				err,
+				results,
+				fields
+			) {
+				if (err) {
+					cb(err);
+					return;
+				}
 
-					cb(null, results);
-				});
-			},
-			legislation: cb => {
-				connection.query("select * from legislation", function(
-					err,
-					results,
-					fields
-				) {
-					if (err) {
-						cb(err);
-						return;
-					}
-
-					cb(null, results);
-				});
-			}
-		},
-		(err, results) => {
-			if (err) {
-				cb(err);
-				return;
-			}
-
-			let caseLegislationReferences = processCases(
-				results.cases,
-				results.legislation
-			);
-
-			const insertQueries = [];
-
-			// for testing, stopping here to stop inserting into db
-			//cb(null, caseLegislationReferences);
-			//return;
-
-			Object.keys(caseLegislationReferences).forEach(case_id => {
-				caseLegislationReferences[case_id].forEach(legislation => {
-					legislation.sections.forEach(section => {
-						insertQueries.push(
-							`insert into legislation_to_cases (legislation_id, section, case_id, count) values ("${
-								legislation.id
-							}", "${section.id}", "${case_id}", "${section.count}")`
-						);
-					});
-				});
+				cb(null, results);
 			});
+		},
+		legislation: cb => {
+			connection.query("select * from legislation", function(
+				err,
+				results,
+				fields
+			) {
+				if (err) {
+					cb(err);
+					return;
+				}
 
-			console.log("Insert", insertQueries.length);
-			if (insertQueries.length > 0) {
-				connection.query(insertQueries.join(";"), function(
-					err,
-					results,
-					fields
-				) {
-					if (err) {
-						cb(err);
-						return;
-					}
-					cb();
-				});
-			} else {
-				cb();
-			}
+				cb(null, results);
+			});
 		}
-	);
+	},
+	(err, results) => {
+		if (err) {
+			cb(err);
+			return;
+		}
+
+		let caseLegislationReferences = processCases(
+			results.cases,
+			results.legislation,
+			cb
+		);
+
+	});
 };
 
 if (require.main === module) {
-	const connection = require("../lib/db");
 	connection.connect(err => {
 		if (err) {
 			console.log("Error connecting");
 			return;
 		}
 		run(connection, (err, result) => {
-			connection.end();
 			if (err) {
 				console.log(err);
 				return;

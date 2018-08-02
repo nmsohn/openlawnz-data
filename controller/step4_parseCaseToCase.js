@@ -18,10 +18,14 @@
 const citation_reg = /((?:\[\d{4}\]\s*)(?:([a-zA-Z]{1,7}))(?:\s*(\w{1,6})))[,;.\s]/g;
 //const old_citation_reg = /\[[0-9]{4}\]\s[a-zA-Z]{1,7}\s*(\w{0,6})[,;.\s]/g
 const moment = require('moment')
+const log4js = require('log4js');
+const logger = log4js.getLogger();
+const async = require("async");
+
 const run = (connection, cb) => {
 	var start = moment().unix()
-	console.log("Parse case to case");
-	console.log("started at " + start)
+	logger.info("Parse case to case");
+	logger.debug("started at " + start)
 	connection.query(
 		"select id, case_text from cases; select citation, case_id from case_citations",
 		function (err, results, fields) {
@@ -29,7 +33,7 @@ const run = (connection, cb) => {
 				cb(err);
 				return;
 			}
-			console.log("fetched tables in: " + (moment().unix() - start) + " secs")
+			logger.debug("fetched tables in: " + (moment().unix() - start) + " secs");
 
 			var allCases = results[0];
 			var allCitations = results[1];
@@ -38,7 +42,7 @@ const run = (connection, cb) => {
 
 			// initialize map of citation strings
 			var case_citations = {};
-			console.log("started matching")
+			logger.info("started matching")
 			/** 
 			 * Loop over cases, pull out all citations
 			 * 
@@ -47,6 +51,7 @@ const run = (connection, cb) => {
 			allCases.forEach(function (caseRow) {
 				// go through each case, check for blank text
 				if (!caseRow.case_text) {
+					logger.debug("No text to parse for missing citation, case_id: " + row.case_id);
 					return;
 				}
 				// regex searches for the format of a citation, grabs all valid sitations and maps them under the id of the case
@@ -58,12 +63,14 @@ const run = (connection, cb) => {
 					case_citations[caseRow.id] = matches
 
 				}
+				logger.debug("Row parsed");
 			});
-			console.log(`found a total of ${totalcites} citations within texts`)
-			console.log("found regex in: " + (moment().unix() - start) + " secs")
+			logger.debug(`found a total of ${totalcites} citations within texts`)
+			logger.debug("found regex in: " + (moment().unix() - start) + " secs")
 
 			// assuming no blank text, inside each case look at all citation records in the db
 			// see if any citations in the db are present in the case text
+			logger.info("Generating citation inserts, may take some time")
 			for (var key in case_citations) {
 				var count = 0;
 
@@ -111,22 +118,33 @@ const run = (connection, cb) => {
 					);
 				}
 			}
-			console.log("Created insert queries in: " + (moment().unix() - start) + " secs")
-			console.log("Insert", insertQueries.length);
+
+			logger.debug("Created insert queries in: " + (moment().unix() - start) + " secs")
+			logger.debug("Insert", insertQueries.length);
+
 			if (insertQueries.length > 0) {
-				connection.query(insertQueries.join(";"), function (
-					err,
-					results,
-					fields
-				) {
+				async.eachLimit(insertQueries, 1, (insertQuery,callback)=> {
+					connection.query(insertQuery, (err,results,fields) => {
+						if (err) {
+							logger.error(err)
+							callback();
+							return;
+						}
+						logger.debug("Insertion complete");
+						callback();
+					});
+				},
+				err=> {
 					if (err) {
-						cb(err);
-						return;
+						logger.error(err);
 					}
-					console.log("Finshed insert in: " + (moment().unix() - start) + " secs")
+					logger.info("Insertions finished");
 					cb();
 				});
+
+
 			} else {
+				logger.info("No insertions created")
 				cb();
 			}
 		}

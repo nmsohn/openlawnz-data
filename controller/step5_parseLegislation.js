@@ -1,6 +1,8 @@
 const request = require("request");
 const fs = require("fs");
 const async = require("async");
+const log4js = require('log4js');
+const logger = log4js.getLogger();
 /**
  * Parse Legislation
  * @param MysqlConnection connection
@@ -8,7 +10,7 @@ const async = require("async");
  */
 // populate the legislation table from API crawler
 const run = (connection, cb) => {
-	console.log("Parse legislation");
+	logger.info("Parse legislation");
 
 	request(
 		`https://api.apify.com/v1/${process.env.APIFY_USER_ID}/crawlers/${
@@ -39,10 +41,11 @@ const run = (connection, cb) => {
 							"INSERT INTO legislation SET ?", legislation,
 							function(err, results, fields) {
 								if (err) {
-									cb(err);
+									logger.error(err);
+									cb();
 									return;
 								}
-
+								logger.debug("Insertion successful");
 								cb();
 							}
 						);
@@ -54,7 +57,7 @@ const run = (connection, cb) => {
 						cb(err);
 						return;
 					}
-					console.log("step5 done")
+					logger.info("step5 done")
 					cb();
 				}
 			);

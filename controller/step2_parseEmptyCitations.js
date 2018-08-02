@@ -9,9 +9,12 @@
 // if found, add that citation to case_citations table
 
 const regNeutralCite = /((?:\[\d{4}\]\s*)(?:(NZDC|NZFC|NZHC|NZCA|NZSC|NZEnvC|NZEmpC|NZACA|NZBSA|NZCC|NZCOP|NZCAA|NZDRT|NZHRRT|NZIACDT|NZIPT|NZIEAA|NZLVT|NZLCDT|NZLAT|NZSHD|NZLLA|NZMVDT|NZPSPLA|NZREADT|NZSSAA|NZSAAA|NZTRA))(?:\s*(\w{1,6})))/g;
+const log4js = require('log4js');
+const logger = log4js.getLogger();
+const async = require("async");
 
 const run = (connection, cb) => {
-	console.log("Parse empty citations");
+	logger.info("Parse empty citations");
 	connection.query(
 		"select * from cases INNER JOIN case_citations ON case_citations.case_id = cases.id WHERE case_citations.citation = ''",
 		function(err, results, fields) {
@@ -19,50 +22,60 @@ const run = (connection, cb) => {
 				cb(err);
 				return;
 			}
-			// array of mysql update statements
-			let updateCitations = [];
 
-			results.forEach(function(row) {
-				if (!row.case_text) {
-					//return console.log("No text to parse for missing citation")
-					cb();
-					return;
-				}
-
-				const case_text = JSON.stringify(row.case_text).substr(0, 550);
-				// regex for neutral citation
-				
-				let citation = case_text.match(regNeutralCite);
-				// for now, limit to the first citation found (in case double citation appears in header - deal with double citations in header later)
-				citation = citation[0];
-				// add to array of update statements
-				updateCitations.push(
-					"update case_citations set citation = '" +
-						citation +
-						"' where case_id = '" +
-						row.id +
-						"'"
-				);
-			});
-			console.log("Update", updateCitations.length);
-			if (updateCitations.length > 0) {
-				connection.query(updateCitations.join(";"), function(
-					err,
-					results,
-					fields
-				) {
-					if (err) {
-						cb(err);
+			if (results.length > 0) {
+				async.eachLimit(results,1,(row, callback) => {
+					if (!row.case_text) {
+						//return console.log("No text to parse for missing citation")
+						logger.debug("No text to parse for missing citation, case_id: " + row.case_id);
+						callback();
 						return;
 					}
+
+					const case_text = JSON.stringify(row.case_text).substr(0, 550);
+					// regex for neutral citation
+					
+					let citation = case_text.match(regNeutralCite);
+					// for now, limit to the first citation found (in case double citation appears in header - deal with double citations in header later)
+					citation = citation[0];
+					// add to array of update statements
+					if (citation) {
+						connection.query(
+							"update case_citations set citation = '" +
+								citation +
+								"' where case_id = '" +
+								row.id +
+								"'",
+								(err,
+								results,
+								fields) => {
+									if (err) {
+										logger.error(err)
+										callback();
+										return;
+									}
+									logger.debug("Update citation complete, case id: " + row.case_id);
+									callback();
+								});
+					}
+					else {
+						logger.debug("No citations found, case id: " + row.case_id);
+						callback();
+					}
+				},
+				err => {
+					if (err) {
+						logger.error(err);
+					}
+					logger.info("Insertions finished");
 					cb();
 				});
-				// console.log(updateCitations);
-			} else {
+			}
+			else {
+				logger.info("No empty citations found")
 				cb();
 			}
-		}
-	);
+		});
 };
 
 if (require.main === module) {

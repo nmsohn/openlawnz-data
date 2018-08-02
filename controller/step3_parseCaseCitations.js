@@ -8,9 +8,12 @@
 // check to see if first part of match already has id in database
 // if so, add second part of match to case_citation database with same id
 const regDoubleCites = /(\[|\()\d{4}(\]|\))[\s\S](\d{0,3}[\s\S])\w{1,5}[\s\S]\d{1,5}(([\s\S]\(\w*\))?)(;|,)\s(\[|\()\d{4}(\]|\))[\s\S](\d{0,3}[\s\S])\w{1,5}[\s\S]\d{1,5}(([\s\S]\(\w*\))?)/g;
+const log4js = require('log4js');
+const logger = log4js.getLogger();
+const async = require("async");
 
 const run = (connection, cb) => {
-	console.log("Parse case citations");
+	logger.info("Parse case citations - may take some time for initial retieval");
 	const commaOrSemi = /,|;/g; // for splitting double citations - delimted by comma or semicolon
 
 	// this wont scale but rewrite in sql later cos we cant be fucked right now
@@ -21,7 +24,7 @@ const run = (connection, cb) => {
 				cb(err);
 				return;
 			}
-
+			logger.info("Cases & citations retrieved");
 			var allCases = results[0];
 			var allCitations = results[1];
 
@@ -33,50 +36,65 @@ const run = (connection, cb) => {
 				});
 			}
 
-			allCases.forEach(function(row) {
-				// if no text, quit
-				if (!row.case_text) {
-					return;
-				}
-				// regex match for all double citations inside case text
-				var citationsMatch = row.case_text.match(regDoubleCites);
-				// if match:
-				if (citationsMatch) {
-					// split into first and second citation
-					var separatedCitations = citationsMatch[0].split(
-						commaOrSemi
-					);
-					// separatedCitations[0] has first of double citation
-					// separatedCitations[1] has second of double citation
-					// we want to search for first citation to see if it is in the db already
-					var citation = separatedCitations[0];
-					var foundCase = findCaseByCitation(citation);
-					if (foundCase) {
-						// if there's a match - ie if the first citation is in the db, then we know we can add another citation that refers to the same case
-						insertQueries.push(
-							"insert into case_citations (case_id, citation) values ('" +
-								foundCase.case_id +
-								"', '" +
-								separatedCitations[1].trim() +
-								"')"
-						);
-					}
-				}
-			});
-			console.log("Insert", insertQueries.length);
-			if (insertQueries.length > 0) {
-				connection.query(insertQueries.join(";"), function(
-					err,
-					results,
-					fields
-				) {
-					if (err) {
-						cb(err);
+			if (allCases.length > 0) {
+				async.eachLimit(allCases,1,(row, callback) => {
+					// if no text, quit
+					if (!row.case_text) {
+						logger.debug("No case_text found for case_id: " + row.id);
+						callback();
 						return;
 					}
+					// regex match for all double citations inside case text
+					var citationsMatch = row.case_text.match(regDoubleCites);
+					// if match:
+					if (citationsMatch) {
+						// split into first and second citation
+						var separatedCitations = citationsMatch[0].split(
+							commaOrSemi
+						);
+						// separatedCitations[0] has first of double citation
+						// separatedCitations[1] has second of double citation
+						// we want to search for first citation to see if it is in the db already
+						var citation = separatedCitations[0];
+						var foundCase = findCaseByCitation(citation);
+						if (foundCase) {
+							// if there's a match - ie if the first citation is in the db, then we know we can add another citation that refers to the same case
+							connection.query(
+								"insert into case_citations (case_id, citation) values ('" +
+									foundCase.case_id +
+									"', '" +
+									separatedCitations[1].trim() +
+									"')",
+									(err, results, fields) => {
+										if (err) {
+											logger.error(err)
+											callback();
+											return;
+										}
+										logger.debug("Double citation insert complete, case id: " + row.id);
+										callback();
+									});
+						}
+						else {
+							logger.debug("No match for this citation found in table: " + citation);
+							callback();
+						}
+					}
+					else {
+						logger.debug("No double citations found, case id: " + row.id);
+						callback();
+					}
+				},
+				err => {
+					if (err) {
+						logger.error(err);
+					}
+					logger.info("Insertions finished");
 					cb();
 				});
-			} else {
+			}
+			else {
+				logger.error("No cases found? Check cases table for data");
 				cb();
 			}
 		}

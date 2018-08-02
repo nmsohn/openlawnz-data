@@ -56,7 +56,7 @@ const getTestResult = async (fileName, cb) => {
 			};
 		}
 
-		cb(null, processCases(dataCache[fileName], legislation)["1"]);
+		processCases(dataCache[fileName], legislation, cb);
 	});
 };
 
@@ -96,6 +96,7 @@ File Name: data/legislation/1-basic-references.txt
 describe('Full, basic references: "in the", under the", and "of the" with following full legislation title', function() {
 	it("Should return 3 Acts", done => {
 		getTestResult("1-basic-references.txt", (err, results) => {
+			results = results["1"];
 			if (err) {
 				done(err);
 				return;
@@ -112,6 +113,7 @@ describe('Full, basic references: "in the", under the", and "of the" with follow
 
 	it("Should return Protection of Personal and Property Rights Act 1988, Evidence Act 2006, Care of Children Act 2004", done => {
 		getTestResult("1-basic-references.txt", (err, results) => {
+			results = results["1"];
 			if (err) {
 				done(err);
 				return;
@@ -131,6 +133,7 @@ describe('Full, basic references: "in the", under the", and "of the" with follow
 
 	it("Should return section 5 of the PPPR Act, sections 57 and 58 of the Evidence Act, s47 of the Care of Children Act", done => {
 		getTestResult("1-basic-references.txt", (err, results) => {
+			results = results["1"];
 			if (err) {
 				done(err);
 				return;
@@ -173,6 +176,7 @@ File Name: data/legislation/2-the-act.txt
 describe('Testing "the Act" definition', function() {
 	it("Should return section 5 of the Protection of Personal and Property Rights Act 1988", done => {
 		getTestResult("2-the-act.txt", (err, results) => {
+			results = results["1"];
 			if (err) {
 				done(err);
 				return;
@@ -210,6 +214,7 @@ File Name: data/legislation/3-defined-term.txt
 describe("Testing defined terms", function() {
 	it("Should return sections 5 and 6 of the Protection of Personal and Property Rights Act, and section 48 of Care of Children Act 2004", done => {
 		getTestResult("3-defined-term.txt", (err, results) => {
+			results = results["1"];
 			if (err) {
 				done(err);
 				return;
@@ -247,6 +252,7 @@ File Name: data/legislation/4-subsequent-reference.txt
 describe("Testing subsequent reference", function() {
 	it("Should return section 12 of the Evidence Act 2006", done => {
 		getTestResult("4-subsequent-reference.txt", (err, results) => {
+			results = results["1"];
 			if (err) {
 				done(err);
 				return;
@@ -282,6 +288,7 @@ File Name: data/legislation/5-subsequent-reference-defined.txt
 describe("Testing subsequent reference with defined terms", function() {
 	it("Should return section 11 of the Protection of Personal and Property Rights Act and section 48 of the Care of Children Act", done => {
 		getTestResult("5-subsequent-reference-defined.txt", (err, results) => {
+			results = results["1"];
 			if (err) {
 				done(err);
 				return;
@@ -339,6 +346,7 @@ File Name: data/legislation/6-delayed-reference.txt
 describe("Testing delayed reference", function() {
 	it("Should return section 11 of the Protection of Personal and Property Rights Act, and section 5 and 6 of the Evidence Act", done => {
 		getTestResult("6-delayed-reference.txt", (err, results) => {
+			results = results["1"];
 			if (err) {
 				done(err);
 				return;
@@ -376,6 +384,7 @@ File Name: data/legislation/7-missing-year.txt
 describe("Testing missing years", function() {
 	it("Should return Section 57 of the Evidence Act, section 4 of the Contractual Remedies Act", done => {
 		getTestResult("7-missing-year.txt", (err, results) => {
+			results = results["1"];
 			if (err) {
 				done(err);
 				return;
@@ -423,6 +432,7 @@ File Name: data/legislation/8-double-section-and-ranges.txt
 describe("Testing multiple sections and ranges", function() {
 	it("", done => {
 		getTestResult("8-double-section-and-ranges.txt", (err, results) => {
+			results = results["1"];
 			if (err) {
 				done(err);
 				return;
@@ -466,6 +476,7 @@ File Name: data/legislation/9-combination-test.txt
 describe("Combination test, basic reference broken by subsections", function() {
 	it("Should return sections 15 and 308 of the Gambling Act, and sections 7, 13 and 11 of the CCCFA", done => {
 		getTestResult("9-combination-test.txt", (err, results) => {
+			results = results["1"];
 			if (err) {
 				done(err);
 				return;
@@ -513,6 +524,7 @@ File Name: data/legislation/10-footnotes-interfering.txt
 describe("Footnotes", function() {
 	it("Should return section 17 of the Insolvency Act (3 times) and section 308 of the Gambling Act", done => {
 		getTestResult("10-footnotes-interfering.txt", (err, results) => {
+			results = results["1"];
 			if (err) {
 				done(err);
 				return;
