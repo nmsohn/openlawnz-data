@@ -9,24 +9,6 @@ const { execSync } = require("child_process");
 const argv = require("yargs").argv;
 require("dotenv").config({ path: __dirname + "/../.env" });
 
-const log4js = require('log4js');
-const logger = log4js.getLogger();
-
-// Configure logging to send to parent process over tcp
-log4js.configure({
-	appenders: {
-		out: { type: 'stdout' },
-	  	network: { type: 'multiprocess', mode: 'worker', loggerHost: 'localhost' }
-	},
-	categories: {
-	  	default: { appenders: ['network','out'], level: 'error' }
-	}
-});
-
-logger.level = process.env.LOG_LEVEL;
-
-
-
 const lib = require("../lib/functions.js");
 const connection = require("../lib/db.js");
 
@@ -42,6 +24,13 @@ const log = msg => {
 		typeof msg !== "string" ? JSON.stringify(msg, null, 4) : msg
 	);
 };
+
+// Set up array for error logging. If specified by parent process, will use an export path to save summary
+const logging = require("../controller/loggingFunctions");
+const logArray = [];
+if (argv.exportPath) {
+	logArray.exportPath = argv.exportPath;
+}
 
 if (!argv.cases) {
 	criticalError("No cases passed in with --cases argument");
@@ -93,6 +82,7 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 							result
 						) {
 							if (err) {
+								console.log(err);
 								cbInner(err,"Error checking case_pdf for bucket key");
 								return;
 							}
@@ -114,10 +104,10 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 									existingCaseId = resultCase[0].id;
 									isValid = resultCase[0].is_valid === 1;
 									
-									if (inBucket && isValid) {
-										logger.info("Case already processed successfully")
-										ignoreCase = true;
-									}
+									// if (inBucket && isValid) {
+										// console.log("Case already processed successfully")
+										// ignoreCase = true;
+									// }
 
 									cbInner();
 								});
@@ -140,42 +130,40 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 					   	}
 						   
 					   	// If pdf is already in bucket (and not processed), download from there not from MOJ
-						if (inBucket && !isValid) {
-							logger.debug("Downloading pdf from bucket");
+						// if (inBucket && !isValid) {
 							s3.getObject(
 								{
 									Key: bucket_key
 								},
 								(err,data) => {
+									console.log("dl")
 									if (err) {
+										console.log("err")
 										cbInner(err,"Error with s3 download of existing bucket pdf");
 										return;
 									}
 									fs.writeFileSync(`${cacheDir}/${bucket_key}`, data.Body);
+									console.log(data)
 									cbInner();
-									
 								}
 								
 							);
-						}
+						// }
 						// Otherwise download from MOJ
-					   	else if (!inBucket) {
-							logger.debug("Downloading pdf from MOJ");
-							try {
-								download(url)
-									.then(data => {
-										fs.writeFileSync(`${cacheDir}/${bucket_key}`, data);
-										cbInner();
-									});
-								}
-							catch(err) {
-								cbInner(err,"Error with pdf download url (MOJ)");
-								return;
-							}
-						}
-						else {
-							cbInner();
-						}
+					   	// else if (!inBucket) {
+						// 	download(url)
+						// 		.then(data => {
+						// 			fs.writeFileSync(`${cacheDir}/${bucket_key}`, data);
+						// 			cbInner();
+						// 		})
+						// 		.catch(err => {
+						// 				cbInner(err,"Error with pdf download url (MOJ)");
+						// 				return;
+						// 		});
+						// }
+						// else {
+						// 	cbInner();
+						// }
 				   },
 	   
 				   /**
@@ -184,7 +172,6 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 					cbInner => {
 						
 						if (!ignoreCase) {
-							logger.debug("Converting pdf to text");
 							const pathtopdf = path.resolve("../xpdf/bin64/pdftotext");
 							const pathtocache = path.resolve(cacheDir);
 							caseItem.case_text = "Unprocessed";
@@ -195,11 +182,10 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 								const child = execSync(
 									pathtopdf + " " + pathtocache + "/" + bucket_key
 								);
-								logger.debug("Success converting to text");
 							}
 							catch(err) {
 								convertError = err;
-								logger.warn("Error converting pdf to text, attempting to check if there is any salvagable text data.");
+								console.log("Error converting pdf to text, attempting to check if there is any salvagable text data.");
 							}
 						//process.stdout.write(child.toString())
 						const noExtension = bucket_key.replace(/\.pdf/g, "");
@@ -211,7 +197,7 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 								);
 							}
 							catch(err) {
-								logger.warn("Unable to salvage case text data")
+								console.log("Unable to salvage case text data")
 								if (convertError) {
 									cbInner(convertError,"Error with pdf conversion, unable to salvage any text data");
 									return;
@@ -223,7 +209,15 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 							}
 
 							if (convertError) {
-								logger.warn("Partial case text data salvaged, but case_text may be incomplete or damaged");
+								console.log("Partial case text data salvaged");
+								logging.recordAndLogError(
+									logArray,
+									"1.1 Pdf Processing",
+									caseData.id,
+									caseData.CaseName,
+									"Error converting pdf, case text data was salvaged but may be incomplete or damaged.",
+									convertError
+								)
 							}
 							else {
 								isValid = true;
@@ -235,8 +229,18 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 				],
 				(err, logMessage) => { //cbinner for failables
 					if (err) {
-						logger.error("Case id: " + caseData.id + " " + logMessage + ": " + err)
-						logger.warn("Error in download/parse pdf, casetext may be incomplete ");
+						console.log("Error in download/parse pdf, casetext may be incomplete ");
+						console.log("Case id: " + caseData.id);
+						console.log(logMessage);
+						console.log(err);
+						logging.recordAndLogError(
+							logArray,
+							"1.1 Pdf Processing",
+							caseData.id,
+							caseData.CaseName,
+							logMessage,
+							err
+						)
 						cb();
 						return;
 					}
@@ -265,7 +269,6 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 									cbInner(err,"Error with s3 upload");
 									return;
 								}
-								logger.debug("Pdf uploaded to s3");
 								cbInner()
 							}
 							
@@ -294,7 +297,6 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 									cbInner(err,"Error with inserting pdf to case_pdf");
 									return;
 								}
-								logger.debug("PDF added to table");
 								pdfId = result.insertId
 								cbInner();
 							}
@@ -368,7 +370,6 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 									}
 									caseCitation.case_id = existingCaseId;
 									caseItem.id = existingCaseId;
-									logger.debug("Case updated on db, is_valid = " + caseItem.is_valid);
 									cbInner();
 								});
 						}
@@ -384,7 +385,6 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 								}
 								caseCitation.case_id = result.insertId;
 								caseItem.id = result.insertId;
-								logger.debug("Case inserted into db");
 								cbInner();
 							});
 						}
@@ -398,33 +398,42 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 				/**
 				 * Insert case citation into database
 				 */
-				cbInner => {
-					if (!ignoreCase) {
-						connection.query(
-							"INSERT INTO case_citations SET ?",
-							caseCitation,
-							function(err, result) {
-								if (err) {
-									cbInner(err,"Error inserting into case_citations table");
-									return;
-								}
-								logger.debug("Case citation inserted into table");
-								logger.debug("Case fully processed - bucket key: " + bucket_key + " Case is_valid: " + isValid);
-								cbInner();
-							}
-						);
-					}
-					else {
-						cbInner();
-					}
-				}
+				// cbInner => {
+				// 	if (!ignoreCase) {
+				// 		connection.query(
+				// 			"INSERT INTO case_citations SET ?",
+				// 			caseCitation,
+				// 			function(err, result) {
+				// 				if (err) {
+				// 					cbInner(err,"Error inserting into case_citations table");
+				// 					return;
+				// 				}
+				// 				cbInner();
+				// 			}
+				// 		);
+				// 	}
+				// 	else {
+				// 		cbInner();
+				// 	}
+				// }
 				
 				
 				],
 				(err, logMessage) => { //cbinner
 					if (err) {
-						logger.error("Case id: " + caseData.id + " " + logMessage + ": " + err)
-						logger.warn("Error in database insert for this case. Data for this case will be missing from one or both of the case and case_citations tables");
+						console.log("Error in database insert for this case.");
+						console.log("Data for this case will be missing from one or both of the case and case_citations tables");
+						console.log("Case id: " + caseData.id);
+						console.log(logMessage);
+						console.log(err);
+						logging.recordAndLogError(
+							logArray,
+							"1.1 Pdf Processing",
+							caseData.id,
+							caseData.CaseName,
+							logMessage,
+							err
+						)
 					}
 					cb();
 				}
@@ -437,7 +446,7 @@ const processPDFAndInsertIntoDatabase = (caseData, cb) => {
 async.series(
 	[
 		/**
-		 * Connect to DB 
+		 * Connect to DB
 		 */
 		cb => {
 			connection.connect(err => {
@@ -457,7 +466,7 @@ async.series(
 
 			async.parallel(
 				casesToProcess.map(caseItem => {
-					logger.debug("Processing case " + count)
+					console.log("Processing case " + count)
 					count++;
 					return processPDFAndInsertIntoDatabase.bind(null, caseItem);
 				}),
@@ -477,13 +486,9 @@ async.series(
 		if (err) {
 			// Error checking moved to more specific spots, critical error disabled for now
 		}
-		logger.info("Child process finished");
+		console.log("Child process finished");
+		log("[PROCESSOR_RESULT]");
 
-		// Shutdown log4js and exit
-		log4js.shutdown(err => {
-			if (err) {
-				console.log(err);
-			}
-		});
+		process.exit();
 	}
 );

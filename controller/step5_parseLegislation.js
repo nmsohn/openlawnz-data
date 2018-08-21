@@ -1,5 +1,8 @@
 const request = require("request");
-
+const fs = require("fs");
+const async = require("async");
+const log4js = require('log4js');
+const logger = log4js.getLogger();
 /**
  * Parse Legislation
  * @param MysqlConnection connection
@@ -7,7 +10,7 @@ const request = require("request");
  */
 // populate the legislation table from API crawler
 const run = (connection, cb) => {
-	console.log("Parse legislation");
+	logger.info("Parse legislation");
 
 	request(
 		`https://api.apify.com/v1/${process.env.APIFY_USER_ID}/crawlers/${
@@ -21,39 +24,44 @@ const run = (connection, cb) => {
 
 			body = JSON.parse(body);
 
+			fs.writeFileSync("../.cache/_dl", JSON.stringify(body, null, 4))
+
 			const allLegislation = Array.prototype.concat.apply(
 				[],
 				body.map(b => b.pageFunctionResult)
 			);
 
-			let insertQueries = [];
 
-			allLegislation.forEach(legislation => {
-				insertQueries.push(
-					`insert into legislation (title, link, year, alerts) values ("${
-						legislation.title
-					}", "${legislation.link}", "${legislation.year}", "${
-						legislation.alerts
-					}")`
-				);
-			});
 
-			console.log("Insert", insertQueries.length);
-			if (insertQueries.length > 0) {
-				connection.query(insertQueries.join(";"), function(
-					err,
-					results,
-					fields
-				) {
+
+			async.parallelLimit(
+				allLegislation.map(legislation => {
+					return function(cb) {
+						connection.query(
+							"INSERT INTO legislation SET ?", legislation,
+							function(err, results, fields) {
+								if (err) {
+									logger.error(err);
+									cb();
+									return;
+								}
+								logger.debug("Insertion successful");
+								cb();
+							}
+						);
+					};
+				}),
+				10,
+				err => {
 					if (err) {
 						cb(err);
 						return;
 					}
+					logger.info("step5 done")
 					cb();
-				});
-			} else {
-				cb();
-			}
+				}
+			);
+
 		}
 	);
 };
