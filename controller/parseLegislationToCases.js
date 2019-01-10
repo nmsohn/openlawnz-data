@@ -1,21 +1,14 @@
 /**
  * Legislation to Cases
  * @param MysqlConnection connection
- * @param {function} cb
  */
-const path = require("path");
-const async = require("async");
-const fs = require("fs");
-require("dotenv").config({
-	path: path.resolve(__dirname + "/../") + "/.env"
-});
 
 /*------------------------------
  Helpers
 ------------------------------*/
 // If legisation name has special characters in it
 RegExp.escape = function(s) {
-	return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+	return s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
 };
 
 String.prototype.matchAll = function(regexp) {
@@ -49,7 +42,9 @@ const findLegislationTitleIndicesInCaseText = (legislationTitle, caseText) => {
 const findLegislationDefinedTermsInCaseText = (legislationTitle, caseText) => {
 	const search = new RegExp(
 		// `${RegExp.escape(legislationTitle)} \\((the\\s)?(.*?)\\)`,
-		`${RegExp.escape(legislationTitle)} \\((?:“|'|')?((the\\s)?(.*?))(?:”|'|')?\\)`,
+		`${RegExp.escape(
+			legislationTitle
+		)} \\((?:“|'|')?((the\\s)?(.*?))(?:”|'|')?\\)`,
 		"gi"
 	);
 	return caseText.matchAll(search);
@@ -133,10 +128,10 @@ const legislationTitleHasWordAtWordIndex = (
 /**
  * Iterates through the next few words until the "under" "of" or
  * "in" part of a section reference (or equivalent for non standard refs)
- * is encountered. 
- * @param {number} offset 
- * @param {number} oldi 
- * @param {Array} legislation 
+ * is encountered.
+ * @param {number} offset
+ * @param {number} oldi
+ * @param {Array} legislation
  * @param {Array} caseWords
  */
 const iterateThroughMultipleSections = (
@@ -147,39 +142,30 @@ const iterateThroughMultipleSections = (
 ) => {
 	let j = 2;
 	while (j < offset) {
-		if (
-			caseWords[oldi + j].match(/^[0-9]+/)
-		){
-			legislation.sections.push(
-				caseWords[oldi + j]
-			);
+		if (caseWords[oldi + j].match(/^[0-9]+/)) {
+			legislation.sections.push(caseWords[oldi + j]);
 		}
 		j++;
 	}
-}
+};
 
 /**
  * Checks if the given index falls within a footnote,
  * i.e is the work at this index part of a footnote.
  * If so, returns the footnote
- * @param {number} index 
- * @param {Array} footnotes 
+ * @param {number} index
+ * @param {Array} footnotes
  */
-const findFootnoteAtIndex = (
-	index,
-	footnotes
-) => {
+const findFootnoteAtIndex = (index, footnotes) => {
 	let returnVal = null;
 	footnotes.forEach(footnote => {
-
-		if (index <= footnote.end &&
-			index >= footnote.start) {
-				returnVal = footnote;
+		if (index <= footnote.end && index >= footnote.start) {
+			returnVal = footnote;
 		}
 	});
-	
+
 	return returnVal;
-}
+};
 
 const processCases = (cases, legislation) => {
 	let MAX_LEGISLATION_TITLE_WORDS_LENGTH = -1;
@@ -192,11 +178,10 @@ const processCases = (cases, legislation) => {
 		console.log("Process case ", caseItem.id);
 
 		try {
-			
 			// change curly brackets to straight
 			caseItem.case_text = caseItem.case_text.replace(/“|”/g, '"');
 
-			let legislationReferences = legislation.map((legislation, i) => {
+			let legislationReferences = legislation.map(legislation => {
 				return {
 					indexesInCase: [],
 					indexesMissingYear: [],
@@ -227,8 +212,11 @@ const processCases = (cases, legislation) => {
 
 					// If this legislation is referenced, treat all following references
 					// for a legislation with this title but no year as referring to this
-					const foundMissingYear =  findLegislationTitleIndicesInCaseText(
-						legislation.title.substring(0,legislation.title.indexOf(legislation.title.match(/\s[0-9]+/))),
+					const foundMissingYear = findLegislationTitleIndicesInCaseText(
+						legislation.title.substring(
+							0,
+							legislation.title.indexOf(legislation.title.match(/\s[0-9]+/))
+						),
 						caseItem.case_text
 					);
 
@@ -245,7 +233,7 @@ const processCases = (cases, legislation) => {
 					legislation.title,
 					caseItem.case_text
 				);
-				
+
 				if (foundDefinedTerms) {
 					foundDefinedTerms.forEach(found => {
 						definedTermReferences.push({
@@ -281,12 +269,19 @@ const processCases = (cases, legislation) => {
 					// record start and end indices for each found footnote
 					let submatches = match[0].split(/\.\s(?=[0-9]+)/);
 					submatches.forEach(subMatch => {
-						let thisN = subMatch.replace(/\n/,"").substring(0,subMatch.indexOf(subMatch.match(/\s/)));
+						let thisN = subMatch
+							.replace(/\n/, "")
+							.substring(0, subMatch.indexOf(subMatch.match(/\s/)));
 
 						// Check this potential footnote is in order based on seen footnotes (if yes, likely a footnote)
-						if (thisN = currentN + 1) {
+						if ((thisN = currentN + 1)) {
 							let startInd = caseItem.case_text.indexOf(subMatch);
-							footnotes.push({start: startInd, end: startInd + subMatch.length + 1, n: thisN, legAtIndex: null});
+							footnotes.push({
+								start: startInd,
+								end: startInd + subMatch.length + 1,
+								n: thisN,
+								legAtIndex: null
+							});
 							currentN++;
 						}
 					});
@@ -319,16 +314,15 @@ const processCases = (cases, legislation) => {
 			for (let i = 0; i < caseWords.length; i++) {
 				const word = caseWords[i].toLowerCase();
 				const nextWord = caseWords[i + 1];
-				
+
 				// Check if parser is currently inside footnote content
-				const footnoteCheck = findFootnoteAtIndex(
-					wordIndices[i],
-					footnotes
-				);
+				const footnoteCheck = findFootnoteAtIndex(wordIndices[i], footnotes);
 
 				if (footnoteCheck) {
 					// only set currentLegislationBlock at the start of block - allows changing within block
-					if (findFootnoteAtIndex(wordIndices[i - 1],footnotes) != footnoteCheck) {
+					if (
+						findFootnoteAtIndex(wordIndices[i - 1], footnotes) != footnoteCheck
+					) {
 						currentLegislationBlock = footnoteCheck.legAtIndex;
 					}
 				}
@@ -342,12 +336,11 @@ const processCases = (cases, legislation) => {
 					wordIndices[i],
 					legislationReferences
 				);
-				
+
 				if (currentLegislationCheck) {
 					if (footnoteCheck) {
 						currentLegislationBlock = currentLegislationCheck;
-					}
-					else {
+					} else {
 						currentLegislation = currentLegislationCheck;
 					}
 				} else {
@@ -361,8 +354,7 @@ const processCases = (cases, legislation) => {
 								currentDefinedTermCheck.legislationId,
 								legislationReferences
 							);
-						}
-						else {
+						} else {
 							currentLegislation = findLegislationById(
 								currentDefinedTermCheck.legislationId,
 								legislationReferences
@@ -378,39 +370,38 @@ const processCases = (cases, legislation) => {
 				let offset = 2;
 
 				if (
-					((word === "s" || 
-						word === "section" || 
-						word === "ss" || 
+					((word === "s" ||
+						word === "section" ||
+						word === "ss" ||
 						word === "sections") &&
-					(nextWord && nextWord.match(/[0-9]+/))) 
+						(nextWord && nextWord.match(/[0-9]+/))) ||
 					// catch cases with no space between s and number e.g s47 instead of s 47
-					|| (nextWord && nextWord.match(/^s[0-9]+/)) 
+					(nextWord && nextWord.match(/^s[0-9]+/))
 				) {
-					singleSection = true
-					
+					singleSection = true;
+
 					// Check if there are multiple sections being referenced, and
 					// find the point where the list ends
-					while(
+					while (
 						i + offset < caseWords.length &&
 						(caseWords[i + offset].match(/[0-9]+/) ||
-						caseWords[i + offset] === "and" ||
-						caseWords[i + offset] === "to" ||
-						caseWords[i + offset] === "-") &&
+							caseWords[i + offset] === "and" ||
+							caseWords[i + offset] === "to" ||
+							caseWords[i + offset] === "-") &&
 						!caseWords[i + offset - 1].match(/\.$/) // terminate if word ends on full stop (won't terminate on subsection period)
 					) {
 						multiSection = true;
 						singleSection = false;
-						offset ++;
+						offset++;
 					}
 				}
-
 
 				/*
 				Match:
 				- s 57
 				- section 57
 				*/
-				if ( singleSection || multiSection) {
+				if (singleSection || multiSection) {
 					/*
 					Check if it's got "under the" or "of the" following it, then it's not related
 					to the current legislation. Instead put it in the following act name / legislation
@@ -420,10 +411,9 @@ const processCases = (cases, legislation) => {
 					if (
 						(caseWords[i + offset] === "under" ||
 							caseWords[i + offset] === "of" ||
-							caseWords[i + offset] === "in" ) &&
-							caseWords[i + offset + 1] === "the"
+							caseWords[i + offset] === "in") &&
+						caseWords[i + offset + 1] === "the"
 					) {
-
 						// Check if the index matches that of a missing year index
 						const checkForMissingYear = findLegislationMissingYearAtIndex(
 							wordIndices[i + offset + 2],
@@ -453,8 +443,8 @@ const processCases = (cases, legislation) => {
 							// If multiple sections, iterate through each one
 							if (multiSection) {
 								iterateThroughMultipleSections(
-									offset, 
-									oldi, 
+									offset,
+									oldi,
 									associatedLegislation,
 									caseWords
 								);
@@ -463,27 +453,25 @@ const processCases = (cases, legislation) => {
 
 							if (footnoteCheck) {
 								currentLegislationBlock = associatedLegislation;
-							}
-							else {
+							} else {
 								currentLegislation = associatedLegislation;
 							}
 
-						// Missing year legislation check
-						} else if (checkForMissingYear){
+							// Missing year legislation check
+						} else if (checkForMissingYear) {
 							checkForMissingYear.sections.push(nextWord);
 							// If multiple sections, iterate through each one
 							if (multiSection) {
 								iterateThroughMultipleSections(
-									offset, 
-									oldi, 
+									offset,
+									oldi,
 									checkForMissingYear,
 									caseWords
 								);
 							}
 							if (footnoteCheck) {
 								currentLegislationBlock = checkForMissingYear;
-							}
-							else {
+							} else {
 								currentLegislation = checkForMissingYear;
 							}
 						} else {
@@ -492,28 +480,24 @@ const processCases = (cases, legislation) => {
 							let startWordIndex = i + offset + 2;
 							let currentTestWordIndex = 0;
 							let maxLegislationTitleLengthFinish = MAX_LEGISLATION_TITLE_WORDS_LENGTH;
-							let allLegislationTitlesAndId = [
-								...legislationReferences
-							].map(legislation => {
-								return {
-									id: legislation.id,
-									legislationTitleWords:
-										legislation.legislationTitleWords
-								};
-							});
+							let allLegislationTitlesAndId = [...legislationReferences].map(
+								legislation => {
+									return {
+										id: legislation.id,
+										legislationTitleWords: legislation.legislationTitleWords
+									};
+								}
+							);
 							while (
 								!subsequentLegislationReference &&
-								currentTestWordIndex !==
-									maxLegislationTitleLengthFinish &&
+								currentTestWordIndex !== maxLegislationTitleLengthFinish &&
 								startWordIndex !== caseWords.length
 							) {
 								// Progressively filter all legislation titles that have the aggregate of words in its title
 								let testWord;
 
 								try {
-									testWord = caseWords[
-										startWordIndex
-									].toLowerCase();
+									testWord = caseWords[startWordIndex].toLowerCase();
 								} catch (ex) {
 									console.log(ex);
 									break;
@@ -526,7 +510,7 @@ const processCases = (cases, legislation) => {
 											legislation.legislationTitleWords
 										)
 								);
-								
+
 								if (allLegislationTitlesAndId.length === 1) {
 									subsequentLegislationReference = findLegislationById(
 										allLegislationTitlesAndId[0].id,
@@ -540,15 +524,13 @@ const processCases = (cases, legislation) => {
 							i = startWordIndex;
 
 							if (subsequentLegislationReference) {
-								subsequentLegislationReference.sections.push(
-									nextWord
-								);
+								subsequentLegislationReference.sections.push(nextWord);
 
 								// If multiple sections, iterate through each one
 								if (multiSection) {
 									iterateThroughMultipleSections(
-										offset, 
-										oldi, 
+										offset,
+										oldi,
 										subsequentLegislationReference,
 										caseWords
 									);
@@ -556,8 +538,7 @@ const processCases = (cases, legislation) => {
 								// Update current legislation (or block current legislation)
 								if (footnoteCheck) {
 									currentLegislationBlock = subsequentLegislationReference;
-								}
-								else {
+								} else {
 									currentLegislation = subsequentLegislationReference;
 								}
 							}
@@ -568,61 +549,60 @@ const processCases = (cases, legislation) => {
 							// If multiple sections, iterate through each one
 							if (multiSection) {
 								iterateThroughMultipleSections(
-									offset, 
-									oldi, 
+									offset,
+									oldi,
 									currentLegislation,
 									caseWords
 								);
 							}
-						}
-						else if (footnoteCheck && currentLegislationBlock) {
+						} else if (footnoteCheck && currentLegislationBlock) {
 							currentLegislationBlock.sections.push(nextWord);
 							// If multiple sections, iterate through each one
 							if (multiSection) {
 								iterateThroughMultipleSections(
-									offset, 
-									oldi, 
+									offset,
+									oldi,
 									currentLegislationBlock,
 									caseWords
 								);
-								
 							}
 						}
 					}
 				}
 
 				if (word.match(new RegExp("\\." + currentFootnoteN + "$"))) {
-					let referencedFootnote = footnotes.find(footnote => footnote.n === currentFootnoteN);
+					let referencedFootnote = footnotes.find(
+						footnote => footnote.n === currentFootnoteN
+					);
 					referencedFootnote.legAtIndex = currentLegislation;
 					currentFootnoteN++;
 				}
-
 			}
-			
+
 			// https://www.jstips.co/en/javascript/deduplicate-an-array/
 			// Instead of dedupe, using section count field, increment for every dupe encountered
 			legislationReferences.map(legislationReference => {
 				legislationReference.sections = legislationReference.sections
 					.map(section => {
 						var str = section;
-						if (str[0].toLowerCase() === 's') {
+						if (str[0].toLowerCase() === "s") {
 							str = str.substring(1);
 						}
 						if (str.match(/\.|\(|\)/)) {
-							str = str.substring(0,str.indexOf(str.match(/\.|\(|\)/)));
+							str = str.substring(0, str.indexOf(str.match(/\.|\(|\)/)));
 						}
 						str = str.replace(
-							/(~|`|!|@|#|$|%|^|&|\*|{|}|\[|\]|;|:|\"|'|<|,|\.|>|\?|\/|\\|\||-|_|\+|=)/g,
+							/(~|`|!|@|#|$|%|^|&|\*|{|}|\[|\]|;|:|"|'|<|,|\.|>|\?|\/|\\|\||-|_|\+|=)/g,
 							""
 						);
-						return {id: str, count: 1};
+						return { id: str, count: 1 };
 					})
 					.filter((el, i, arr) => {
 						var firstIndex = arr.findIndex(element => {
 							return element.id === el.id;
 						});
 
-						var isNotDupe = (firstIndex === i);
+						var isNotDupe = firstIndex === i;
 
 						if (!isNotDupe) {
 							arr[firstIndex].count++;
@@ -640,15 +620,11 @@ const processCases = (cases, legislation) => {
 			console.log(`> Found ${totalSections} unique legislation sections`);
 
 			if (totalSections > 0) {
-				caseLegislationReferences[
-					caseItem.id
-				] = legislationReferences.filter(
+				caseLegislationReferences[caseItem.id] = legislationReferences.filter(
 					legislationReference => legislationReference.sections.length > 0
 				);
 			}
-
-		}
-		catch (ex) {
+		} catch (ex) {
 			console.log("> Error encountered: " + ex);
 			failures.push({
 				failedCase: caseItem.id,
@@ -658,117 +634,57 @@ const processCases = (cases, legislation) => {
 	});
 
 	if (failures.length > 0) {
-		console.log(failures.length + " failures were encountered as follows. Parser results may be incomplete.");
+		console.log(
+			failures.length +
+				" failures were encountered as follows. Parser results may be incomplete."
+		);
 		console.log(failures);
 	}
 	return caseLegislationReferences;
 };
 
-const run = (connection, cb) => {
+const run = async connection => {
 	console.log("Parse legislation to cases");
 
-	async.parallel(
-		{
-			cases: cb => {
-				// for testing, just get one case
-				connection.query("select * from cases", function(
-					err,
-					results,
-					fields
-				) {
-					if (err) {
-						cb(err);
-						return;
-					}
-
-					cb(null, results);
-				});
-			},
-			legislation: cb => {
-				connection.query("select * from legislation", function(
-					err,
-					results,
-					fields
-				) {
-					if (err) {
-						cb(err);
-						return;
-					}
-
-					cb(null, results);
-				});
-			}
-		},
-		(err, results) => {
-			if (err) {
-				cb(err);
-				return;
-			}
-
-			let caseLegislationReferences = processCases(
-				results.cases,
-				results.legislation
-			);
-
-			const insertQueries = [];
-
-			// for testing, stopping here to stop inserting into db
-			//cb(null, caseLegislationReferences);
-			//return;
-
-			Object.keys(caseLegislationReferences).forEach(case_id => {
-				caseLegislationReferences[case_id].forEach(legislation => {
-					legislation.sections.forEach(section => {
-						insertQueries.push(
-							`insert into legislation_to_cases (legislation_id, section, case_id, count) values ("${
-								legislation.id
-							}", "${section.id}", "${case_id}", "${section.count}")`
-						);
-					});
-				});
-			});
-
-			console.log("Insert", insertQueries.length);
-			if (insertQueries.length > 0) {
-				connection.query(insertQueries.join(";"), function(
-					err,
-					results,
-					fields
-				) {
-					if (err) {
-						cb(err);
-						return;
-					}
-					cb();
-				});
-			} else {
-				cb();
-			}
-		}
+	const [[cases, legislation]] = await connection.query(
+		"select * from cases; select * from legislation"
 	);
+
+	let caseLegislationReferences = processCases(cases, legislation);
+
+	const insertQueries = [];
+
+	// for testing, stopping here to stop inserting into db
+	//return;
+
+	Object.keys(caseLegislationReferences).forEach(case_id => {
+		caseLegislationReferences[case_id].forEach(legislation => {
+			legislation.sections.forEach(section => {
+				insertQueries.push(
+					`insert into legislation_to_cases (legislation_id, section, case_id, count) values ("${
+						legislation.id
+					}", "${section.id}", "${case_id}", "${section.count}")`
+				);
+			});
+		});
+	});
+
+	console.log("Insert", insertQueries.length);
+	if (insertQueries.length > 0) {
+		await connection.query(insertQueries.join(";"));
+	}
 };
 
 if (require.main === module) {
-	const connection = require("../lib/db");
-	connection.connect(err => {
-		if (err) {
-			console.log("Error connecting");
-			return;
+	const argv = require("yargs").argv;
+	(async () => {
+		try {
+			const connection = await require("../common/setup")(argv.env);
+			await run(connection);
+		} catch (ex) {
+			console.log(ex);
 		}
-		run(connection, (err, result) => {
-			connection.end();
-			if (err) {
-				console.log(err);
-				return;
-			}
-			const cachePath = __dirname + "/../.cache/";
-			!fs.existsSync(cachePath) && fs.mkdirSync(cachePath);
-			
-			const path = cachePath + "step5_parseLegislationToCases_result.json";
-			fs.writeFileSync(path, JSON.stringify(result, null, 4));
-			console.log(`Done. Written result to ${path}`);
-		});
-	});
+	})().finally(process.exit);
 } else {
 	module.exports = run;
 	module.exports.processCases = processCases;

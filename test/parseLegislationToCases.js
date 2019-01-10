@@ -5,7 +5,7 @@ chai.should();
 chai.use(require("chai-things"));
 const expect = chai.expect;
 
-const processCases = require("../controller/step6_parseLegislationToCases")
+const processCases = require("../controller/parseLegislationToCases")
 	.processCases;
 const request = require("request");
 
@@ -117,9 +117,19 @@ describe('Full, basic references: "in the", under the", and "of the" with follow
 				return;
 			}
 			try {
-				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988")).equal(true);
-				expect(results.some(ref => ref.title === "Evidence Act 2006")).equal(true);
-				expect(results.some(ref => ref.title === "Care of Children Act 2004")).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title ===
+							"Protection of Personal and Property Rights Act 1988"
+					)
+				).equal(true);
+				expect(results.some(ref => ref.title === "Evidence Act 2006")).equal(
+					true
+				);
+				expect(
+					results.some(ref => ref.title === "Care of Children Act 2004")
+				).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -136,15 +146,39 @@ describe('Full, basic references: "in the", under the", and "of the" with follow
 				return;
 			}
 			try {
-				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
-					ref.sections.some(section => section.id == "5" && section.count === 1))).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title ===
+								"Protection of Personal and Property Rights Act 1988" &&
+							ref.sections.some(
+								section => section.id == "5" && section.count === 1
+							)
+					)
+				).equal(true);
 
-				expect(results.some(ref => ref.title === "Care of Children Act 2004" &&
-				ref.sections.some(section => section.id == "47A" && section.count === 1))).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title === "Care of Children Act 2004" &&
+							ref.sections.some(
+								section => section.id == "47A" && section.count === 1
+							)
+					)
+				).equal(true);
 
-				expect(results.some(ref => ref.title === "Evidence Act 2006" &&
-				ref.sections.some(section => section.id == "57" && section.count === 1) &&
-				ref.sections.some(section => section.id == "58" && section.count === 1))).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title === "Evidence Act 2006" &&
+							ref.sections.some(
+								section => section.id == "57" && section.count === 1
+							) &&
+							ref.sections.some(
+								section => section.id == "58" && section.count === 1
+							)
+					)
+				).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -178,8 +212,16 @@ describe('Testing "the Act" definition', function() {
 				return;
 			}
 			try {
-				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
-				ref.sections.some(section => section.id == "5" && section.count === 1))).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title ===
+								"Protection of Personal and Property Rights Act 1988" &&
+							ref.sections.some(
+								section => section.id == "5" && section.count === 1
+							)
+					)
+				).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -215,12 +257,28 @@ describe("Testing defined terms", function() {
 				return;
 			}
 			try {
-				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
-				ref.sections.some(section => section.id == "5" && section.count === 1) &&
-				ref.sections.some(section => section.id == "6" && section.count === 1))).equal(true);
-				expect(results.some(ref => ref.title === "Care of Children Act 2004" &&
-				ref.sections.some(section => section.id == "48" && section.count === 1))).equal(true);
-				
+				expect(
+					results.some(
+						ref =>
+							ref.title ===
+								"Protection of Personal and Property Rights Act 1988" &&
+							ref.sections.some(
+								section => section.id == "5" && section.count === 1
+							) &&
+							ref.sections.some(
+								section => section.id == "6" && section.count === 1
+							)
+					)
+				).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title === "Care of Children Act 2004" &&
+							ref.sections.some(
+								section => section.id == "48" && section.count === 1
+							)
+					)
+				).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -252,8 +310,15 @@ describe("Testing subsequent reference", function() {
 				return;
 			}
 			try {
-				expect(results.some(ref => ref.title === "Evidence Act 2006" &&
-				ref.sections.some(section => section.id == "12" && section.count === 1))).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title === "Evidence Act 2006" &&
+							ref.sections.some(
+								section => section.id == "12" && section.count === 1
+							)
+					)
+				).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -287,10 +352,25 @@ describe("Testing subsequent reference with defined terms", function() {
 				return;
 			}
 			try {
-				expect(results.some(ref => ref.title === "Care of Children Act 2004" &&
-				ref.sections.some(section => section.id == "48" && section.count === 1))).equal(true);
-				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
-				ref.sections.some(section => section.id == "11" && section.count === 1))).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title === "Care of Children Act 2004" &&
+							ref.sections.some(
+								section => section.id == "48" && section.count === 1
+							)
+					)
+				).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title ===
+								"Protection of Personal and Property Rights Act 1988" &&
+							ref.sections.some(
+								section => section.id == "11" && section.count === 1
+							)
+					)
+				).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -344,11 +424,28 @@ describe("Testing delayed reference", function() {
 				return;
 			}
 			try {
-				expect(results.some(ref => ref.title === "Evidence Act 2006" &&
-				ref.sections.some(section => section.id == "5" && section.count === 1) &&
-				ref.sections.some(section => section.id == "6" && section.count === 1))).equal(true);
-				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
-				ref.sections.some(section => section.id == "11" && section.count === 1))).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title === "Evidence Act 2006" &&
+							ref.sections.some(
+								section => section.id == "5" && section.count === 1
+							) &&
+							ref.sections.some(
+								section => section.id == "6" && section.count === 1
+							)
+					)
+				).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title ===
+								"Protection of Personal and Property Rights Act 1988" &&
+							ref.sections.some(
+								section => section.id == "11" && section.count === 1
+							)
+					)
+				).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -381,10 +478,24 @@ describe("Testing missing years", function() {
 				return;
 			}
 			try {
-				expect(results.some(ref => ref.title === "Evidence Act 2006" &&
-				ref.sections.some(section => section.id == "57" && section.count === 1))).equal(true);
-				expect(results.some(ref => ref.title === "Contractual Remedies Act 1979" &&
-				ref.sections.some(section => section.id == "4" && section.count === 1))).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title === "Evidence Act 2006" &&
+							ref.sections.some(
+								section => section.id == "57" && section.count === 1
+							)
+					)
+				).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title === "Contractual Remedies Act 1979" &&
+							ref.sections.some(
+								section => section.id == "4" && section.count === 1
+							)
+					)
+				).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -428,14 +539,33 @@ describe("Testing multiple sections and ranges", function() {
 				return;
 			}
 			try {
-				expect(results.some(ref => ref.title === "Fair Trading Act 1986" &&
-				ref.sections.some(section => section.id == "9" && section.count === 1) &&
-				ref.sections.some(section => section.id == "10" && section.count === 1) &&
-				ref.sections.some(section => section.id == "43" && section.count === 1) &&
-				ref.sections.some(section => section.id == "11" && section.count === 1) &&
-				ref.sections.some(section => section.id == "13" && section.count === 1) &&
-				ref.sections.some(section => section.id == "42" && section.count === 1) &&
-				ref.sections.some(section => section.id == "45" && section.count === 1))).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title === "Fair Trading Act 1986" &&
+							ref.sections.some(
+								section => section.id == "9" && section.count === 1
+							) &&
+							ref.sections.some(
+								section => section.id == "10" && section.count === 1
+							) &&
+							ref.sections.some(
+								section => section.id == "43" && section.count === 1
+							) &&
+							ref.sections.some(
+								section => section.id == "11" && section.count === 1
+							) &&
+							ref.sections.some(
+								section => section.id == "13" && section.count === 1
+							) &&
+							ref.sections.some(
+								section => section.id == "42" && section.count === 1
+							) &&
+							ref.sections.some(
+								section => section.id == "45" && section.count === 1
+							)
+					)
+				).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -471,13 +601,33 @@ describe("Combination test, basic reference broken by subsections", function() {
 				return;
 			}
 			try {
-				expect(results.some(ref => ref.title === "Credit Contracts and Consumer Finance Act 2003" &&
-				ref.sections.some(section => section.id == "7" && section.count === 1) &&
-				ref.sections.some(section => section.id == "13" && section.count === 1) &&
-				ref.sections.some(section => section.id == "11" && section.count === 1))).equal(true);
-				expect(results.some(ref => ref.title === "Gambling Act 2003" &&
-				ref.sections.some(section => section.id == "15" && section.count === 1) &&
-				ref.sections.some(section => section.id == "308" && section.count === 1))).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title === "Credit Contracts and Consumer Finance Act 2003" &&
+							ref.sections.some(
+								section => section.id == "7" && section.count === 1
+							) &&
+							ref.sections.some(
+								section => section.id == "13" && section.count === 1
+							) &&
+							ref.sections.some(
+								section => section.id == "11" && section.count === 1
+							)
+					)
+				).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title === "Gambling Act 2003" &&
+							ref.sections.some(
+								section => section.id == "15" && section.count === 1
+							) &&
+							ref.sections.some(
+								section => section.id == "308" && section.count === 1
+							)
+					)
+				).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -518,10 +668,24 @@ describe("Footnotes", function() {
 				return;
 			}
 			try {
-				expect(results.some(ref => ref.title === "Insolvency Act 2006" &&
-				ref.sections.some(section => section.id == "17" && section.count === 3))).equal(true);
-				expect(results.some(ref => ref.title === "Gambling Act 2003" &&
-				ref.sections.some(section => section.id == "310" && section.count === 1))).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title === "Insolvency Act 2006" &&
+							ref.sections.some(
+								section => section.id == "17" && section.count === 3
+							)
+					)
+				).equal(true);
+				expect(
+					results.some(
+						ref =>
+							ref.title === "Gambling Act 2003" &&
+							ref.sections.some(
+								section => section.id == "310" && section.count === 1
+							)
+					)
+				).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -549,7 +713,7 @@ File Name: data/legislation/11-inline-quotes.txt
 
 describe("Inline quotes", function() {
 	it("Should return sections 17, 18, 19, 31 and 32 of the Evidence Act and not sections 20 and 22", done => {
-		getTestResult("11-inline-quotes.txt", (err, results) => {
+		getTestResult("11-inline-quotes.txt", err => {
 			if (err) {
 				done(err);
 				return;
@@ -565,7 +729,6 @@ describe("Inline quotes", function() {
 		});
 	});
 });
-
 
 /*
 ---------------------------------------------------
@@ -585,7 +748,7 @@ File Name: data/legislation/12-block-quote-that-defines-term.txt
 
 describe("Block quotes with contradictory defined term", function() {
 	it("Should return sections 17 and 16 of the Insolvency Act and section 11 of the Credit Contracts and Consumer Finance Act 2003", done => {
-		getTestResult("12-block-quote-that-defines-term.txt", (err, results) => {
+		getTestResult("12-block-quote-that-defines-term.txt", err => {
 			if (err) {
 				done(err);
 				return;
@@ -601,4 +764,3 @@ describe("Block quotes with contradictory defined term", function() {
 		});
 	});
 });
-

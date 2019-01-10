@@ -1,24 +1,16 @@
 {
 	"name": "openlawnz-data",
-	"version": "1.0.0",
-	"description": "",
-	"main": "index.js",
+	"private": true,
 	"scripts": {
-		"postinstall": "cd pdfToDBProcessor && yarn install && cd ../controller && yarn install",
-		"start": "cd controller && node index",
-		"test": "mocha"
+		"test": "eslint **/*.js --ignore-pattern node_modules/ && mocha"
 	},
-	"keywords": [],
-	"author": "",
-	"license": "ISC",
-	"dependencies": {
-		"aws-sdk": "^2.238.1",
-		"chai": "^4.1.2",
-		"chai-things": "^0.2.0",
-		"dotenv": "^4.0.0",
-		"mocha": "^5.2.0",
-		"moment": "^2.22.2",
-		"mysql": "^2.15.0",
-		"request": "^2.86.0"
+	"workspaces": [
+		"controller",
+		"lib",
+		"processor",
+		"test"
+	],
+	"devDependencies": {
+		"eslint": "^5.12.0"
 	}
 }

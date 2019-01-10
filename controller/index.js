@@ -1,55 +1,31 @@
 /**
  * @file Runs all the steps for processing law data
  */
-
-const async = require("async");
-
-const connection = require("../lib/db.js");
-
-const step1 = require("./step1_processMOJData");
-const step2 = require("./step2_parseEmptyCitations");
-const step3 = require("./step3_parseCaseCitations");
-const step4 = require("./step4_parseCaseToCase");
-const step5 = require("./step5_parseLegislation");
-const step6 = require("./step6_parseLegislationToCases");
-const step7 = require("./step7_updateSearchIndex");
-const logging = require("./loggingFunctions");
 const argv = require("yargs").argv;
 
-// Set up logging array, which will be saved if exportPath tag is specified,
-// Otherwise just printed to console as a summary
-logArray = [];
-logArray.exportPath = argv.exportPath;
+const setup = require("../common/setup.js");
 
-async.series(
-	[
-		
-		step1.bind(this,logArray),
-		/**
-		 * Connect to DB
-		 */
-		cb => {
-			connection.connect(err => {
-				if (err) {
-					cb(err);
-					return;
-				}
-				cb();
-			});
-		},
-		step2.bind(this, connection),
-		step3.bind(this, connection),
-		step4.bind(this, connection),
-		step5.bind(this, connection),
-		step6.bind(this, connection)
-		//step7
-	],
-	err => {
-		connection.end();
-		if (err) {
-			console.log(err);
-		} else {
-			console.log("Success");
-		}
+const getData = require("./getData");
+const parseEmptyCitations = require("./parseEmptyCitations");
+const parseCaseCitations = require("./parseCaseCitations");
+const parseCaseToCase = require("./parseCaseToCase");
+const parseLegislation = require("./parseLegislation");
+const parseLegislationToCases = require("./parseLegislationToCases");
+
+const run = async () => {
+	const connection = await setup(argv.env);
+	if (!argv.skipdata) {
+		await getData(argv.env, argv.datasource, argv.datalocation);
 	}
-);
+	await parseEmptyCitations(connection);
+	await parseCaseCitations(connection);
+	await parseCaseToCase(connection);
+	await parseLegislation(connection);
+	await parseLegislationToCases(connection);
+};
+
+try {
+	run().finally(process.exit);
+} catch (ex) {
+	console.log(ex);
+}

@@ -1,11 +1,22 @@
+const crypto = require("crypto");
+const fs = require("fs");
+
 module.exports.insertSlash = function(citation, insertString) {
 	var first = citation.substring(0, 4);
 	var second = citation.substring(4);
 	return first + insertString + second;
 };
 
+// https://hackernoon.com/accessing-nested-objects-in-javascript-f02f1bd6387f
+module.exports.getNestedObject = (nestedObj, pathArr) => {
+	return pathArr.reduce(
+		(obj, key) => (obj && obj[key] !== "undefined" ? obj[key] : undefined),
+		nestedObj
+	);
+};
+
 module.exports.formatName = function(longName) {
-	const regExName = /^(.*?)\ \[/;
+	const regExName = /^(.*?) \[/;
 	const regExFileNumber = /(.*)(?= HC| COA| SC| FC| DC)/;
 	// regexName gets everything up to square bracket
 	// if that matches, return that
@@ -20,6 +31,41 @@ module.exports.formatName = function(longName) {
 			return "Unknown case";
 		}
 	}
+};
+
+// From https://github.com/so-ta/sha256-file/blob/master/index.js
+module.exports.sha256File = function(filename, callback) {
+	var sum = crypto.createHash("sha256");
+	if (callback && typeof callback === "function") {
+		var fileStream = fs.createReadStream(filename);
+		fileStream.on("error", function(err) {
+			return callback(err, null);
+		});
+		fileStream.on("data", function(chunk) {
+			try {
+				sum.update(chunk);
+			} catch (ex) {
+				return callback(ex, null);
+			}
+		});
+		fileStream.on("end", function() {
+			return callback(null, sum.digest("hex"));
+		});
+	} else {
+		sum.update(fs.readFileSync(filename));
+		return sum.digest("hex");
+	}
+};
+
+module.exports.encodeURIfix = str => {
+	return encodeURIComponent(str)
+		.replace(/!/g, "%21")
+		.replace(/\(/g, "%28")
+		.replace(/\)/g, "%29")
+		.replace(/'/g, "%27")
+		.replace(/_/g, "%5F")
+		.replace(/\*/g, "%2A")
+		.replace(/\./g, "%2E");
 };
 
 module.exports.slashToDash = function(str) {
@@ -41,7 +87,4 @@ module.exports.getCitation = function(str) {
 			return null;
 		}
 	}
-};
-module.exports.getMOJURL = function(id) {
-	return "https://forms.justice.govt.nz/search/Documents/pdf/" + id;
 };
