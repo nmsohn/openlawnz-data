@@ -24,8 +24,8 @@ const run = async () => {
 	await parseLegislationToCases(connection);
 };
 
-try {
-	run().finally(process.exit);
-} catch (ex) {
-	console.log(ex);
-}
+run()
+	.catch(ex => {
+		console.log(ex);
+	})
+	.finally(process.exit);
