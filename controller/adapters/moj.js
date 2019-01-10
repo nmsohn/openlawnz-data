@@ -26,7 +26,7 @@ const run = async () => {
 		return mojData.map(d => {
 			return {
 				pdf_provider: "jdo",
-				pdf_db_key: "jdo_" + d.JudgmentDate + "_" + d.DocumentName,
+				pdf_db_key: "jdo_" + +new Date(d.JudgmentDate) + "_" + d.DocumentName,
 				pdf_url: "https://forms.justice.govt.nz/search/Documents/pdf/" + d.id,
 				case_name: d.CaseName,
 				case_date: d.JudgmentDate,
