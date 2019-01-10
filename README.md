@@ -4,8 +4,8 @@
 
 - AWS s3 creds needed at `~/.aws`
 - Rename `.env.sample` to .env.`env` (e.g. `.env.local`) and fill in with mySQL and AWS details. If you're using [apify](https://www.apify.com/), then fill those details in too
-- Rename `processor/adapterconfig.sample.json` to `processor/adapterconfig.json` and fill in which adapter you want to use
-  - If you're using xpdf you can [download it here](https://www.xpdfreader.com/download.html)
+- Rename `processor/adapterconfig.sample.json` to `processor/adapterconfig.json` and fill in which adapter you want to use:
+  - If you're using xpdf you can [download it here](https://www.xpdfreader.com/download.html) "Xpdf tools" and point to the `pdftotext` binary
   - If you're using you can [download it here](https://www.evermap.com/AutoBatch.asp)
 - Yarn is required
 
