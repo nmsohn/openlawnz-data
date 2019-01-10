@@ -6,7 +6,7 @@
 	},
 	"workspaces": [
 		"controller",
-		"lib",
+		"common",
 		"processor",
 		"test"
 	],

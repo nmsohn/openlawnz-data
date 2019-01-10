@@ -16,7 +16,6 @@ const common = require("../common/functions.js");
  */
 
 const run = async (env, datasource, datalocation) => {
-	console.log("ff");
 	if (!datasource) {
 		throw new Error("Missing datasource");
 	}

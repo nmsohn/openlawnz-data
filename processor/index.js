@@ -4,52 +4,14 @@ const fs = require("fs");
 const path = require("path");
 const moment = require("moment");
 const AWS = require("aws-sdk");
-require("moment-timezone");
 const argv = require("yargs").argv;
 const common = require("../common/functions.js");
-const setup = require("../common/db.js");
-
-if (!argv.cases) {
-	throw new Error("No cases passed in.");
-}
-
-if (!argv.env) {
-	throw new Error("No env passed in");
-}
-
-const creds = new AWS.SharedIniFileCredentials({
-	profile: process.env.AWS_PROFILE
-});
-
-AWS.config.credentials = creds;
-
-const s3 = new AWS.S3({
-	params: { Bucket: process.env.AWS_S3_BUCKET }
-});
-
-let pdfToTextAdapterName = argv.pdfToTextAdapter || "xpdf";
-let pdfToTextAdapter;
-
-switch (pdfToTextAdapterName) {
-	case "autobatch":
-		pdfToTextAdapter = require("./adapters/autobatch");
-		break;
-	case "xpdf":
-		pdfToTextAdapter = require("./adapters/xpdf");
-		break;
-}
-
-const cacheDir = __dirname + "/.cache";
-
-fs.existsSync(cacheDir) || fs.mkdirSync(cacheDir);
-
-const formatDate = date => {
-	return moment(date)
-		.tz("Pacific/Auckland")
-		.format("YYYY-MM-DD");
-};
 
 const run = async legalCases => {
+	if (!argv.cases) {
+		throw new Error("No cases passed in.");
+	}
+
 	if (
 		!Array.isArray(legalCases) ||
 		legalCases.find(
@@ -67,7 +29,33 @@ const run = async legalCases => {
 			"Malformed data. Ensure all fields are present. Returning."
 		);
 	}
-	const connection = await setup(argv.env);
+	const connection = await require("../common/setup.js")(argv.env);
+
+	const creds = new AWS.SharedIniFileCredentials({
+		profile: process.env.AWS_PROFILE
+	});
+
+	AWS.config.credentials = creds;
+
+	const s3 = new AWS.S3({
+		params: { Bucket: process.env.AWS_S3_BUCKET }
+	});
+
+	let pdfToTextAdapterName = argv.pdfToTextAdapter || "xpdf";
+	let pdfToTextAdapter;
+
+	switch (pdfToTextAdapterName) {
+		case "autobatch":
+			pdfToTextAdapter = require("./adapters/autobatch");
+			break;
+		case "xpdf":
+			pdfToTextAdapter = require("./adapters/xpdf");
+			break;
+	}
+
+	const formatDate = date => {
+		return moment(date).format("YYYY-MM-DD");
+	};
 
 	const pdfDbKeys = legalCases.map(l => l.pdf_db_key);
 
@@ -86,7 +74,17 @@ const run = async legalCases => {
 
 		if (newLegalCases.length > 0) {
 			console.log(`${newLegalCases.length} new cases`);
-			const pdfDownloadFolder = path.join(cacheDir, uuidv1());
+			let pdfDownloadFolder;
+			if (process.platform === "win32") {
+				const tmp = require("tmp");
+				pdfDownloadFolder = tmp.dirSync();
+			} else {
+				const cacheDir = __dirname + "/.cache";
+
+				fs.existsSync(cacheDir) || fs.mkdirSync(cacheDir);
+				pdfDownloadFolder = path.join(cacheDir, uuidv1());
+			}
+
 			fs.mkdirSync(pdfDownloadFolder);
 
 			for (let l of newLegalCases) {
