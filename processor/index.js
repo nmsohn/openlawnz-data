@@ -77,7 +77,7 @@ const run = async legalCases => {
 			let pdfDownloadFolder;
 			if (process.platform === "win32") {
 				const tmp = require("tmp");
-				pdfDownloadFolder = tmp.dirSync();
+				pdfDownloadFolder = tmp.dirSync().name;
 			} else {
 				const cacheDir = __dirname + "/.cache";
 
