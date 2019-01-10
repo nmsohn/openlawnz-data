@@ -53,6 +53,10 @@ const run = async legalCases => {
 			break;
 	}
 
+	const cacheDir = __dirname + "/.cache";
+
+	fs.existsSync(cacheDir) || fs.mkdirSync(cacheDir);
+
 	const formatDate = date => {
 		return moment(date).format("YYYY-MM-DD");
 	};
@@ -74,17 +78,8 @@ const run = async legalCases => {
 
 		if (newLegalCases.length > 0) {
 			console.log(`${newLegalCases.length} new cases`);
-			let pdfDownloadFolder;
-			if (process.platform === "win32") {
-				const tmp = require("tmp");
-				pdfDownloadFolder = tmp.dirSync().name;
-			} else {
-				const cacheDir = __dirname + "/.cache";
-
-				fs.existsSync(cacheDir) || fs.mkdirSync(cacheDir);
-				pdfDownloadFolder = path.join(cacheDir, uuidv1());
-				fs.mkdirSync(pdfDownloadFolder);
-			}
+			const pdfDownloadFolder = path.join(cacheDir, uuidv1());
+			fs.mkdirSync(pdfDownloadFolder);
 
 			for (let l of newLegalCases) {
 				try {
