@@ -83,9 +83,8 @@ const run = async legalCases => {
 
 				fs.existsSync(cacheDir) || fs.mkdirSync(cacheDir);
 				pdfDownloadFolder = path.join(cacheDir, uuidv1());
+				fs.mkdirSync(pdfDownloadFolder);
 			}
-
-			fs.mkdirSync(pdfDownloadFolder);
 
 			for (let l of newLegalCases) {
 				try {
