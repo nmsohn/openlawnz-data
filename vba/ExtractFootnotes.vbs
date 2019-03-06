@@ -1,3 +1,4 @@
+' http://www.cpearson.com/excel/SortingArrays.aspx
 Public Function QSortInPlace( _
     ByRef InputArray As Variant, _
     Optional ByVal LB As Long = -1&, _
