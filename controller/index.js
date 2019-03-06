@@ -15,7 +15,7 @@ const parseLegislationToCases = require("./parseLegislationToCases");
 const run = async () => {
 	const connection = await setup(argv.env);
 	if (!argv.skipdata) {
-		await getData(argv.env, argv.datasource, argv.datalocation);
+		await getData(argv.env, argv.datasource, argv.datalocation, argv.trylocaldatalocation);
 	}
 	await parseEmptyCitations(connection);
 	await parseCaseCitations(connection);

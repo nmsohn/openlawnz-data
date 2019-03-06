@@ -1,5 +1,6 @@
 CREATE DATABASE  IF NOT EXISTS `cases` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */;
 USE `cases`;
+-- MySQL dump 10.13  Distrib 8.0.13, for Win64 (x86_64)
 --
 -- Host: localhost    Database: cases
 -- ------------------------------------------------------
@@ -25,11 +26,25 @@ DROP TABLE IF EXISTS `case_citations`;
  SET character_set_client = utf8mb4 ;
 CREATE TABLE `case_citations` (
   `case_id` int(11) NOT NULL,
-  `citation` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `citation` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   PRIMARY KEY (`case_id`,`citation`),
   FULLTEXT KEY `case_citations_index` (`citation`),
   CONSTRAINT `citations_case_id_fk` FOREIGN KEY (`case_id`) REFERENCES `cases` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `case_errors`
+--
+
+DROP TABLE IF EXISTS `case_errors`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+ SET character_set_client = utf8mb4 ;
+CREATE TABLE `case_errors` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `cases_array` json DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -42,12 +57,12 @@ DROP TABLE IF EXISTS `case_pdf`;
 CREATE TABLE `case_pdf` (
   `pdf_id` int(11) NOT NULL AUTO_INCREMENT,
   `fetch_date` date DEFAULT NULL,
-  `pdf_provider` varchar(45) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `pdf_db_key` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `pdf_url` varchar(2083) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `pdf_sha256` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `pdf_provider` varchar(45) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `pdf_db_key` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `pdf_url` varchar(2083) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `pdf_sha256` varchar(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`pdf_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=271 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2050 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -60,16 +75,20 @@ DROP TABLE IF EXISTS `cases`;
 CREATE TABLE `cases` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `case_date` date DEFAULT NULL,
-  `case_text` mediumtext COLLATE utf8mb4_unicode_ci,
-  `case_name` varchar(1000) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `case_text` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `case_name` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `case_footnotes` text COLLATE utf8mb4_unicode_ci,
+  `case_footnote_contexts` text COLLATE utf8mb4_unicode_ci,
   `pdf_id` int(11) DEFAULT NULL,
-  `pdf_to_text_engine` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `pdf_to_text_engine` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `case_footnotes_being_processed` tinyint(4) DEFAULT NULL,
+  `case_footnotes_is_valid` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `cases_pdf_id_fk_idx` (`pdf_id`),
   FULLTEXT KEY `idx_cases_case_text` (`case_text`) COMMENT '''Fulltext Index to search for substrings efficiently''',
   FULLTEXT KEY `case_text_fulltext_index` (`case_text`) COMMENT '''A fulltext index on case_text to allow the searching of citations efficiently.''',
   CONSTRAINT `cases_pdf_id_fk` FOREIGN KEY (`pdf_id`) REFERENCES `case_pdf` (`pdf_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=271 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2050 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -99,13 +118,13 @@ DROP TABLE IF EXISTS `legislation`;
  SET character_set_client = utf8mb4 ;
 CREATE TABLE `legislation` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `link` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `year` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `alerts` mediumtext COLLATE utf8mb4_unicode_ci,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `link` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `year` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `alerts` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1737 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1681 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -137,4 +156,4 @@ CREATE TABLE `legislation_to_cases` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2019-01-09 16:59:48
+-- Dump completed on 2019-03-06 21:51:02

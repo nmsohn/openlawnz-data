@@ -11,6 +11,6 @@
 		"test"
 	],
 	"devDependencies": {
-		"eslint": "^5.12.0"
+		"eslint": "^5.15.1"
 	}
 }

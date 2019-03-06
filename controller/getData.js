@@ -7,15 +7,14 @@
  * IMPORTANT NOTE: Do not run this multiple times as it may affect the server you are downloading from
  */
 
-const { exec } = require("child_process");
-const common = require("../common/functions.js");
+const processor = require("../processor");
 
 /**
  * Spawns a child process to process cases array. Delays by 10 seconds before returning to ease pressure on services.
  * @param {Array} cases
  */
 
-const run = async (env, datasource, datalocation) => {
+const run = async (env, datasource, datalocation, pdfconverteradapter, trylocaldatalocation) => {
 	if (!datasource) {
 		throw new Error("Missing datasource");
 	}
@@ -26,22 +25,22 @@ const run = async (env, datasource, datalocation) => {
 	let legalCases;
 
 	if (datasource === "moj") {
-		legalCases = await require("./adapters/moj")();
+		legalCases = await require("./getData/moj")();
 	} else if (datasource === "url") {
 		if (!datalocation) {
 			throw new Error("Missing datalocation");
 		}
-		legalCases = await require("./adapters/generic/url")(datalocation);
+		legalCases = await require("./getData/generic/url")(datalocation);
 	} else if (datasource === "s3") {
 		if (!datalocation) {
 			throw new Error("Missing datalocation");
 		}
-		legalCases = await require("./adapters/generic/s3")(datalocation);
+		legalCases = await require("./getData/generic/s3")(datalocation);
 	} else if (datasource === "localfile") {
 		if (!datalocation) {
 			throw new Error("Missing datalocation");
 		}
-		legalCases = await require("./adapters/generic/localfile")(datalocation);
+		legalCases = await require("./getData/generic/localfile")(datalocation);
 	} else {
 		try {
 			legalCases = JSON.stringify(JSON.parse(datasource));
@@ -58,28 +57,17 @@ const run = async (env, datasource, datalocation) => {
 	for (let legalCases of caseArrays) {
 		await (() => {
 			return new Promise((resolve, reject) => {
-				const cmd = `node ../processor/index.js --env=${env} --cases=${common.encodeURIfix(
-					JSON.stringify(legalCases)
-				)}`;
-
-				const e = exec(cmd, {}, err => {
-					if (err) {
-						reject(err);
-						return;
-					}
-				});
-
-				e.stderr.on("data", data => {
-					reject(data);
-				});
-
-				e.stdout.on("data", data => {
-					if (data.trim() === "[PROCESSOR_RESULT]") {
-						setTimeout(resolve, 10000);
-					} else {
-						console.log(data);
-					}
-				});
+				processor(env, legalCases, pdfconverteradapter, trylocaldatalocation)
+					.then(newCases => {
+						if(newCases.length > 0) {
+							console.log('newcases', newCases)
+							setTimeout(resolve, 10000);
+						} else {
+							console.log("No new cases in this batch, processing next.")
+							resolve()
+						}
+					})
+					.catch(reject);
 			});
 		})();
 	}
@@ -87,11 +75,13 @@ const run = async (env, datasource, datalocation) => {
 
 if (require.main === module) {
 	const argv = require("yargs").argv;
-	try {
-		run(argv.env, argv.datasource, argv.datalocation).finally(process.exit);
-	} catch (ex) {
-		console.log(ex);
-	}
+	(async () => {
+		try {
+			await run(argv.env, argv.datasource, argv.datalocation, argv.pdfconverteradapter, argv.trylocaldatalocation);
+		} catch (ex) {
+			console.log(ex);
+		}
+	})().finally(process.exit);
 } else {
 	module.exports = run;
 }
