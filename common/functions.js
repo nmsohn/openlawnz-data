@@ -1,5 +1,42 @@
 const crypto = require("crypto");
 const fs = require("fs");
+const path = require("path");
+
+module.exports.makeLogger = () => {
+	var logDir;
+	var logFile;
+	var logFileWithoutExtension;
+	var logFileExtension;
+
+	return {
+		
+		setLogDir: dir => {
+			logDir = dir;
+		},
+		setLogFile: fileName => {
+			logFile = path.basename(fileName);
+			var logFileSplit = logFile.split(".");
+			logFileWithoutExtension = logFileSplit[0];
+			logFileExtension = "txt";
+		},
+		log: (data, append, appendFileName) => {
+			if (!process.env.SUPPRESS_LOGGING) {
+				if (!logFile) {
+					console.log(data);
+				} else {
+					if(Array.isArray(data)) {
+						data = data.join("\t");
+					};
+					var method = !append ? fs.writeFileSync : fs.appendFileSync;
+					var currentLogFile = !appendFileName
+						? logFile
+						: logFileWithoutExtension + '-' + appendFileName + "." + logFileExtension;
+					method(path.join(logDir, currentLogFile), data);
+				}
+			}
+		}
+	};
+};
 
 module.exports.insertSlash = function(citation, insertString) {
 	var first = citation.substring(0, 4);

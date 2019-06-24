@@ -1,61 +1,16 @@
-const fs = require("fs");
+const { readFileSync } = require("fs");
 const chai = require("chai");
 chai.should();
-chai.use(require("chai-things"));
+chai.use(require("./lib/chai-things"));
 const expect = chai.expect;
-const regNeutralCite = require("../controller/parseEmptyCitations")
-	.regNeutralCite;
 
-var citationData = fs.readFileSync(
+const { regNeutralCite } = require("../parser/parseEmptyCitations");
+const citationData = readFileSync(
 	__dirname + "/data/case-citations.txt",
 	"utf8"
 );
 
-/* ******************************* */
-/* REGEX */
-
-// const sectionsSearch = new RegExp(
-// 	/(\b((section(s)*)|s{1,2})\b) \b\d{1,4}\w{0,3}\b( (and|to) \b\d*\w{1,3}\b)*/,
-// 	"gi"
-// );
-// const explicitDefinitionRegex = "(\\((?:[\"'](.*)[\"']\\)|(.*)\\)))";
-
-/* ***************************** */
-/* FUNCTIONS */
-
-String.prototype.matchAll = function(regexp) {
-	var matches = [];
-	this.replace(regexp, function() {
-		var arr = [].slice.call(arguments, 0);
-		var extras = arr.splice(-2);
-		arr.index = extras[0];
-		arr.input = extras[1];
-		matches.push(arr);
-	});
-	return matches.length ? matches : null;
-};
-
-// function wordCount(str) {
-// 	return str.split(" ").length;
-// }
-
-// function acr(s) {
-// 	var words, acronym, nextWord, index;
-// 	words = s.replace(/\(|\)/g, "").split(" ");
-// 	acronym = "";
-// 	index = 0;
-// 	// only do it for number of words less one to exclude date
-// 	while (index < words.length - 1) {
-// 		nextWord = words[index];
-// 		acronym = acronym.toUpperCase() + nextWord.charAt(0);
-// 		index = index + 1;
-// 	}
-// 	return acronym;
-// }
-
-/* ************************************ */
-
-describe("Regex", function() {
+describe("Case Citations", function() {
 	it("Testing neutral citation regex", function() {
 		var neutralCitations = citationData.match(regNeutralCite);
 		// remove errant line breaks
@@ -63,8 +18,7 @@ describe("Regex", function() {
 			return x.replace(/\n/g, " ");
 		});
 		// make sure each type of neutral citation will return (non-pinpoint at this stage)
-		var neutralArray = [];
-		neutralArray.push(
+		var neutralArray = [
 			"[2012] NZHC 507",
 			"[2012] NZDC 12",
 			"[2012] NZCA 12",
@@ -90,14 +44,9 @@ describe("Regex", function() {
 			"[2012] NZREADT 13",
 			"[2012] NZSSAA 13",
 			"[2012] NZTRA 13"
+		];
+		expect(JSON.stringify(neutralCitations)).equal(
+			JSON.stringify(neutralArray)
 		);
-		if (
-			expect(JSON.stringify(neutralCitations)).equal(
-				JSON.stringify(neutralArray)
-			)
-		) {
-			console.log("ok");
-		}
-		// TODO: pinpoint citations i.e., paragraphs and page references capture
 	});
 });

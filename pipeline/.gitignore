@@ -1,0 +1,5 @@
+adapterconfig.json
+
+*.bat
+.cache
+.logs

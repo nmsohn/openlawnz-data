@@ -1,13 +1,10 @@
-const readFileSync = require("fs").readFileSync;
-
+const { readFileSync } = require("fs");
+const request = require("request");
 const chai = require("chai");
 chai.should();
-chai.use(require("chai-things"));
+chai.use(require("./lib/chai-things"));
 const expect = chai.expect;
-
-const processCases = require("../controller/parseLegislationToCases")
-	.processCases;
-const request = require("request");
+const { processCase } = require("../parser/parseLegislationToCases");
 
 let dataCache = {};
 
@@ -35,30 +32,61 @@ const getLegislation = () => {
 	});
 };
 
-const getTestResult = async (fileName, cb) => {
+const getTestResult = async (fileName, cb, caseData) => {
 	getLegislation().then((legislation, err) => {
 		if (err) {
 			cb(err);
 			return;
 		}
+		
 		if (!dataCache[fileName]) {
+			const case_text = readFileSync(`${__dirname}/data/legislation/${fileName}.txt`, "utf8");
+			let case_footnotes;
+			let case_footnote_contexts;
+			try {
+				case_footnotes =  readFileSync(`${__dirname}/data/legislation/${fileName}.footnotes.txt`, "utf8");
+			} catch(ex) {
+
+			}
+			try {
+				case_footnote_contexts =  readFileSync(`${__dirname}/data/legislation/${fileName}.footnotecontexts.txt`, "utf8");
+			} catch(ex) {
+				
+			}
 			dataCache = {
 				...dataCache,
 				[fileName]: [
 					{
 						id: 1,
-						case_text: readFileSync(
-							`${__dirname}/data/legislation/${fileName}`,
-							"utf8"
-						)
+						case_text,
+						case_footnotes,
+						case_footnote_contexts,
+						...caseData
 					}
 				]
 			};
 		}
 
-		cb(null, processCases(dataCache[fileName], legislation)["1"]);
+		const results = processCase(dataCache[fileName][0], legislation).legislationReferences.map(r => {
+			return {
+				...r,
+				sections: Object.keys(r.groupedSections).map(sectionKey => {
+					const section = r.groupedSections[sectionKey]
+					return {
+						  id: sectionKey,
+						  count: section.count
+					  }
+					
+				  }),
+				
+			}
+		});
+		
+		cb(null, results);
+
 	});
 };
+
 
 /*
 ====================================================
@@ -95,7 +123,8 @@ File Name: data/legislation/1-basic-references.txt
 
 describe('Full, basic references: "in the", under the", and "of the" with following full legislation title', function() {
 	it("Should return 3 Acts", done => {
-		getTestResult("1-basic-references.txt", (err, results) => {
+		getTestResult("1-basic-references", (err, results) => {
+			
 			if (err) {
 				done(err);
 				return;
@@ -111,25 +140,16 @@ describe('Full, basic references: "in the", under the", and "of the" with follow
 	});
 
 	it("Should return Protection of Personal and Property Rights Act 1988, Evidence Act 2006, Care of Children Act 2004", done => {
-		getTestResult("1-basic-references.txt", (err, results) => {
+		getTestResult("1-basic-references", (err, results) => {
+			
 			if (err) {
 				done(err);
 				return;
 			}
 			try {
-				expect(
-					results.some(
-						ref =>
-							ref.title ===
-							"Protection of Personal and Property Rights Act 1988"
-					)
-				).equal(true);
-				expect(results.some(ref => ref.title === "Evidence Act 2006")).equal(
-					true
-				);
-				expect(
-					results.some(ref => ref.title === "Care of Children Act 2004")
-				).equal(true);
+				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988")).equal(true);
+				expect(results.some(ref => ref.title === "Evidence Act 2006")).equal(true);
+				expect(results.some(ref => ref.title === "Care of Children Act 2004")).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -140,45 +160,21 @@ describe('Full, basic references: "in the", under the", and "of the" with follow
 	});
 
 	it("Should return section 5 of the PPPR Act, sections 57 and 58 of the Evidence Act, s47 of the Care of Children Act", done => {
-		getTestResult("1-basic-references.txt", (err, results) => {
+		getTestResult("1-basic-references", (err, results) => {
 			if (err) {
 				done(err);
 				return;
 			}
 			try {
-				expect(
-					results.some(
-						ref =>
-							ref.title ===
-								"Protection of Personal and Property Rights Act 1988" &&
-							ref.sections.some(
-								section => section.id == "5" && section.count === 1
-							)
-					)
-				).equal(true);
+				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
+					ref.sections.some(section => section.id == "5" && section.count === 1))).equal(true);
 
-				expect(
-					results.some(
-						ref =>
-							ref.title === "Care of Children Act 2004" &&
-							ref.sections.some(
-								section => section.id == "47A" && section.count === 1
-							)
-					)
-				).equal(true);
+				expect(results.some(ref => ref.title === "Care of Children Act 2004" &&
+				ref.sections.some(section => section.id == "47A" && section.count === 1))).equal(true);
 
-				expect(
-					results.some(
-						ref =>
-							ref.title === "Evidence Act 2006" &&
-							ref.sections.some(
-								section => section.id == "57" && section.count === 1
-							) &&
-							ref.sections.some(
-								section => section.id == "58" && section.count === 1
-							)
-					)
-				).equal(true);
+				expect(results.some(ref => ref.title === "Evidence Act 2006" &&
+				ref.sections.some(section => section.id == "57" && section.count === 1) &&
+				ref.sections.some(section => section.id == "58(2)" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -206,22 +202,15 @@ File Name: data/legislation/2-the-act.txt
 
 describe('Testing "the Act" definition', function() {
 	it("Should return section 5 of the Protection of Personal and Property Rights Act 1988", done => {
-		getTestResult("2-the-act.txt", (err, results) => {
+		getTestResult("2-the-act", (err, results) => {
+			
 			if (err) {
 				done(err);
 				return;
 			}
 			try {
-				expect(
-					results.some(
-						ref =>
-							ref.title ===
-								"Protection of Personal and Property Rights Act 1988" &&
-							ref.sections.some(
-								section => section.id == "5" && section.count === 1
-							)
-					)
-				).equal(true);
+				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
+				ref.sections.some(section => section.id == "5" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -251,34 +240,19 @@ File Name: data/legislation/3-defined-term.txt
 
 describe("Testing defined terms", function() {
 	it("Should return sections 5 and 6 of the Protection of Personal and Property Rights Act, and section 48 of Care of Children Act 2004", done => {
-		getTestResult("3-defined-term.txt", (err, results) => {
+		getTestResult("3-defined-term", (err, results) => {
+			
 			if (err) {
 				done(err);
 				return;
 			}
 			try {
-				expect(
-					results.some(
-						ref =>
-							ref.title ===
-								"Protection of Personal and Property Rights Act 1988" &&
-							ref.sections.some(
-								section => section.id == "5" && section.count === 1
-							) &&
-							ref.sections.some(
-								section => section.id == "6" && section.count === 1
-							)
-					)
-				).equal(true);
-				expect(
-					results.some(
-						ref =>
-							ref.title === "Care of Children Act 2004" &&
-							ref.sections.some(
-								section => section.id == "48" && section.count === 1
-							)
-					)
-				).equal(true);
+				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
+				ref.sections.some(section => section.id == "5" && section.count === 1) &&
+				ref.sections.some(section => section.id == "6" && section.count === 1))).equal(true);
+				expect(results.some(ref => ref.title === "Care of Children Act 2004" &&
+				ref.sections.some(section => section.id == "48" && section.count === 1))).equal(true);
+				
 			} catch (ex) {
 				done(ex);
 				return;
@@ -304,21 +278,15 @@ File Name: data/legislation/4-subsequent-reference.txt
 
 describe("Testing subsequent reference", function() {
 	it("Should return section 12 of the Evidence Act 2006", done => {
-		getTestResult("4-subsequent-reference.txt", (err, results) => {
+		getTestResult("4-subsequent-reference", (err, results) => {
+			
 			if (err) {
 				done(err);
 				return;
 			}
 			try {
-				expect(
-					results.some(
-						ref =>
-							ref.title === "Evidence Act 2006" &&
-							ref.sections.some(
-								section => section.id == "12" && section.count === 1
-							)
-					)
-				).equal(true);
+				expect(results.some(ref => ref.title === "Evidence Act 2006" &&
+				ref.sections.some(section => section.id == "12" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -346,31 +314,17 @@ File Name: data/legislation/5-subsequent-reference-defined.txt
 
 describe("Testing subsequent reference with defined terms", function() {
 	it("Should return section 11 of the Protection of Personal and Property Rights Act and section 48 of the Care of Children Act", done => {
-		getTestResult("5-subsequent-reference-defined.txt", (err, results) => {
+		getTestResult("5-subsequent-reference-defined", (err, results) => {
+			
 			if (err) {
 				done(err);
 				return;
 			}
 			try {
-				expect(
-					results.some(
-						ref =>
-							ref.title === "Care of Children Act 2004" &&
-							ref.sections.some(
-								section => section.id == "48" && section.count === 1
-							)
-					)
-				).equal(true);
-				expect(
-					results.some(
-						ref =>
-							ref.title ===
-								"Protection of Personal and Property Rights Act 1988" &&
-							ref.sections.some(
-								section => section.id == "11" && section.count === 1
-							)
-					)
-				).equal(true);
+				expect(results.some(ref => ref.title === "Care of Children Act 2004" &&
+				ref.sections.some(section => section.id == "48" && section.count === 1))).equal(true);
+				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
+				ref.sections.some(section => section.id == "11" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -418,34 +372,18 @@ File Name: data/legislation/6-delayed-reference.txt
 
 describe("Testing delayed reference", function() {
 	it("Should return section 11 of the Protection of Personal and Property Rights Act, and section 5 and 6 of the Evidence Act", done => {
-		getTestResult("6-delayed-reference.txt", (err, results) => {
+		getTestResult("6-delayed-reference", (err, results) => {
+			
 			if (err) {
 				done(err);
 				return;
 			}
 			try {
-				expect(
-					results.some(
-						ref =>
-							ref.title === "Evidence Act 2006" &&
-							ref.sections.some(
-								section => section.id == "5" && section.count === 1
-							) &&
-							ref.sections.some(
-								section => section.id == "6" && section.count === 1
-							)
-					)
-				).equal(true);
-				expect(
-					results.some(
-						ref =>
-							ref.title ===
-								"Protection of Personal and Property Rights Act 1988" &&
-							ref.sections.some(
-								section => section.id == "11" && section.count === 1
-							)
-					)
-				).equal(true);
+				expect(results.some(ref => ref.title === "Evidence Act 2006" &&
+				ref.sections.some(section => section.id == "5" && section.count === 1) &&
+				ref.sections.some(section => section.id == "6" && section.count === 1))).equal(true);
+				expect(results.some(ref => ref.title === "Protection of Personal and Property Rights Act 1988" &&
+				ref.sections.some(section => section.id == "11(2)" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -472,30 +410,17 @@ File Name: data/legislation/7-missing-year.txt
 
 describe("Testing missing years", function() {
 	it("Should return Section 57 of the Evidence Act, section 4 of the Contractual Remedies Act", done => {
-		getTestResult("7-missing-year.txt", (err, results) => {
+		getTestResult("7-missing-year", (err, results) => {
+			
 			if (err) {
 				done(err);
 				return;
 			}
 			try {
-				expect(
-					results.some(
-						ref =>
-							ref.title === "Evidence Act 2006" &&
-							ref.sections.some(
-								section => section.id == "57" && section.count === 1
-							)
-					)
-				).equal(true);
-				expect(
-					results.some(
-						ref =>
-							ref.title === "Contractual Remedies Act 1979" &&
-							ref.sections.some(
-								section => section.id == "4" && section.count === 1
-							)
-					)
-				).equal(true);
+				expect(results.some(ref => ref.title === "Evidence Act 2006" &&
+				ref.sections.some(section => section.id == "57" && section.count === 1))).equal(true);
+				expect(results.some(ref => ref.title === "Contractual Remedies Act 1979" &&
+				ref.sections.some(section => section.id == "4(1)" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -533,39 +458,21 @@ File Name: data/legislation/8-double-section-and-ranges.txt
 
 describe("Testing multiple sections and ranges", function() {
 	it("", done => {
-		getTestResult("8-double-section-and-ranges.txt", (err, results) => {
+		getTestResult("8-double-section-and-ranges", (err, results) => {
+			
 			if (err) {
 				done(err);
 				return;
 			}
 			try {
-				expect(
-					results.some(
-						ref =>
-							ref.title === "Fair Trading Act 1986" &&
-							ref.sections.some(
-								section => section.id == "9" && section.count === 1
-							) &&
-							ref.sections.some(
-								section => section.id == "10" && section.count === 1
-							) &&
-							ref.sections.some(
-								section => section.id == "43" && section.count === 1
-							) &&
-							ref.sections.some(
-								section => section.id == "11" && section.count === 1
-							) &&
-							ref.sections.some(
-								section => section.id == "13" && section.count === 1
-							) &&
-							ref.sections.some(
-								section => section.id == "42" && section.count === 1
-							) &&
-							ref.sections.some(
-								section => section.id == "45" && section.count === 1
-							)
-					)
-				).equal(true);
+				expect(results.some(ref => ref.title === "Fair Trading Act 1986" &&
+				ref.sections.some(section => section.id == "9" && section.count === 1) &&
+				ref.sections.some(section => section.id == "10" && section.count === 1) &&
+				ref.sections.some(section => section.id == "43" && section.count === 1) &&
+				ref.sections.some(section => section.id == "11" && section.count === 1) &&
+				ref.sections.some(section => section.id == "13" && section.count === 1) &&
+				ref.sections.some(section => section.id == "42" && section.count === 1) &&
+				ref.sections.some(section => section.id == "45" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -595,39 +502,19 @@ File Name: data/legislation/9-combination-test.txt
 
 describe("Combination test, basic reference broken by subsections", function() {
 	it("Should return sections 15 and 308 of the Gambling Act, and sections 7, 13 and 11 of the CCCFA", done => {
-		getTestResult("9-combination-test.txt", (err, results) => {
+		getTestResult("9-combination-test", (err, results) => {
 			if (err) {
 				done(err);
 				return;
 			}
 			try {
-				expect(
-					results.some(
-						ref =>
-							ref.title === "Credit Contracts and Consumer Finance Act 2003" &&
-							ref.sections.some(
-								section => section.id == "7" && section.count === 1
-							) &&
-							ref.sections.some(
-								section => section.id == "13" && section.count === 1
-							) &&
-							ref.sections.some(
-								section => section.id == "11" && section.count === 1
-							)
-					)
-				).equal(true);
-				expect(
-					results.some(
-						ref =>
-							ref.title === "Gambling Act 2003" &&
-							ref.sections.some(
-								section => section.id == "15" && section.count === 1
-							) &&
-							ref.sections.some(
-								section => section.id == "308" && section.count === 1
-							)
-					)
-				).equal(true);
+				expect(results.some(ref => ref.title === "Credit Contracts and Consumer Finance Act 2003" &&
+				ref.sections.some(section => section.id == "7(1)" && section.count === 1) &&
+				ref.sections.some(section => section.id == "13" && section.count === 1) &&
+				ref.sections.some(section => section.id == "11" && section.count === 1))).equal(true);
+				expect(results.some(ref => ref.title === "Gambling Act 2003" &&
+				ref.sections.some(section => section.id == "15" && section.count === 1) &&
+				ref.sections.some(section => section.id == "308(1)" && section.count === 1))).equal(true);
 			} catch (ex) {
 				done(ex);
 				return;
@@ -642,15 +529,9 @@ describe("Combination test, basic reference broken by subsections", function() {
 Footnotes 
 ---------------------------------------------------
 Description:
-As part of the parsing process, we convert PDFs into plaintext. Some issues arise with footnotes.
+Footnotes are referenced by a context, that is the footnote reference number and a preceeding short snippet of text (to ensure uniqueness).
 
-Footnote numbers appear inline, and footnote content appears at the bottom of a page (effectively, at an arbitrary place in the content). There could be a reference to a different Act between the inline footnote number, and the footnote content. 
-
-Therefore section references that appear in footnotes should either be ignored, or the logic applied at the point of the footnote number instead of the footnote content.
-
-See the test file for an example, where the first footnote is in paragraph 2 ("claim against the creditor.1") and the content of that first footnote appears after paragraph 4. But in paragraph 3, a different Act is mentioned.
-
-One possibility is to split the text into paragraphs deliniated by (1) strictly sequential numbers in square brackets or (2) if no such structure in the present document (not all judgments have paragraph numbers), then on double line breaks, to assist in ordering and identifying footnote location.
+When iterating through the text and a footnote context is met, it will use the current body's legislation for the footnote text.
 
 Expected results: 
 Section 17, Insolvency Act 2006 ( x3 )
@@ -661,31 +542,126 @@ File Name: data/legislation/10-footnotes-interfering.txt
 */
 
 describe("Footnotes", function() {
-	it("Should return section 17 of the Insolvency Act (3 times) and section 308 of the Gambling Act", done => {
-		getTestResult("10-footnotes-interfering.txt", (err, results) => {
+	it("Should return section 17 of the Insolvency Act (3 times), and section 308 of the Gambling Act, and (fake) Section 18 of Unit Titles Act 2010", done => {
+		getTestResult("10-footnotes-interfering", (err, results) => {
+			// console.log(results.map(s => {
+			// 	return {
+			// 		title: s.title,
+			// 		sections: JSON.stringify(s.sections)
+			// 	}
+			// }))
 			if (err) {
 				done(err);
 				return;
 			}
 			try {
-				expect(
-					results.some(
-						ref =>
-							ref.title === "Insolvency Act 2006" &&
-							ref.sections.some(
-								section => section.id == "17" && section.count === 3
-							)
-					)
-				).equal(true);
-				expect(
-					results.some(
-						ref =>
-							ref.title === "Gambling Act 2003" &&
-							ref.sections.some(
-								section => section.id == "310" && section.count === 1
-							)
-					)
-				).equal(true);
+				
+				expect(results.some(ref => ref.title === "Insolvency Act 2006" &&
+				ref.sections.some(section => section.id == "17" && section.count === 1))).equal(true);
+				expect(results.some(ref => ref.title === "Gambling Act 2003" &&
+				ref.sections.some(section => section.id == "310" && section.count === 1))).equal(true);
+				expect(results.some(ref => ref.title === "Unit Titles Act 2010" &&
+				ref.sections.some(section => section.id == "18" && section.count === 1))).equal(true);
+			} catch (ex) {
+				done(ex);
+				return;
+			}
+			done();
+		}, {
+			case_footnotes_exist_in_text: true,
+			case_footnotes_are_valid: true
+		});
+	});
+});
+
+
+/*
+---------------------------------------------------
+Accuracy confidence of Legislation To Cases 
+---------------------------------------------------
+Description:
+There are 3 levels of accuracy confidence:
+0 - No stripping of footnotes from text, or footnote parsing. Meaning there could be erroneous section references.
+1 - Footnotes stripped out, but are invalid (something wrong with citations)
+2 - There are no footnotes, or the footnotes that are there are valid
+
+Expected results: 
+0, 1, 2
+
+File Names:
+- data/legislation/11-accuracy-confidence-0.txt (& .footnotes.txt, .footnotecontexts.txt)
+- data/legislation/11-accuracy-confidence-1.txt (& .footnotes.txt, .footnotecontexts.txt)
+- data/legislation/11-accuracy-confidence-2.txt (& .footnotes.txt, .footnotecontexts.txt)
+--------------------------------------------------- 
+*/
+
+describe("Accuracy Confidence", function() {
+	it("Should return accuracy 0", done => {
+		getTestResult("11-accuracy-confidence-0", (err, results) => {
+			
+			if (err) {
+				done(err);
+				return;
+			}
+			try {
+				expect(results[0].accuracy_confidence === 0)
+			} catch (ex) {
+				done(ex);
+				return;
+			}
+			done();
+		}, {
+			case_footnotes_exist_in_text: false,
+			case_footnotes_are_valid: false
+		});
+	});
+	it("Should return accuracy 1", done => {
+		getTestResult("11-accuracy-confidence-1", (err, results) => {
+			
+			if (err) {
+				done(err);
+				return;
+			}
+			try {
+				expect(results[0].accuracy_confidence === 1)
+			} catch (ex) {
+				done(ex);
+				return;
+			}
+			done();
+		}, {
+			case_footnotes_exist_in_text: true,
+			case_footnotes_are_valid: false
+		});
+	});
+	it("Should return accuracy 2", done => {
+		getTestResult("11-accuracy-confidence-2", (err, results) => {
+			
+			if (err) {
+				done(err);
+				return;
+			}
+			try {
+				expect(results[0].accuracy_confidence === 2)
+			} catch (ex) {
+				done(ex);
+				return;
+			}
+			done();
+		}, {
+			case_footnotes_exist_in_text: true,
+			case_footnotes_are_valid: true
+		});
+	});
+	it("Should return accuracy 2 (no footnotes)", done => {
+		getTestResult("11-accuracy-confidence-2-no-footnotes", (err, results) => {
+			
+			if (err) {
+				done(err);
+				return;
+			}
+			try {
+				expect(results[0].accuracy_confidence === 2)
 			} catch (ex) {
 				done(ex);
 				return;
@@ -709,11 +685,10 @@ Should NOT include section 20 and 22 of the Evidence Act 2006.
 
 File Name: data/legislation/11-inline-quotes.txt
 --------------------------------------------------- 
-*/
 
 describe("Inline quotes", function() {
 	it("Should return sections 17, 18, 19, 31 and 32 of the Evidence Act and not sections 20 and 22", done => {
-		getTestResult("11-inline-quotes.txt", err => {
+		getTestResult("11-inline-quotes.txt", (err, results) => {
 			if (err) {
 				done(err);
 				return;
@@ -729,6 +704,9 @@ describe("Inline quotes", function() {
 		});
 	});
 });
+
+*/
+
 
 /*
 ---------------------------------------------------
@@ -744,11 +722,10 @@ Section 11 of the Credit Contracts and Consumer Finance Act 2003
 
 File Name: data/legislation/12-block-quote-that-defines-term.txt
 --------------------------------------------------- 
-*/
 
 describe("Block quotes with contradictory defined term", function() {
 	it("Should return sections 17 and 16 of the Insolvency Act and section 11 of the Credit Contracts and Consumer Finance Act 2003", done => {
-		getTestResult("12-block-quote-that-defines-term.txt", err => {
+		getTestResult("12-block-quote-that-defines-term.txt", (err, results) => {
 			if (err) {
 				done(err);
 				return;
@@ -764,3 +741,5 @@ describe("Block quotes with contradictory defined term", function() {
 		});
 	});
 });
+
+*/

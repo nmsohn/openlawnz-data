@@ -2,15 +2,14 @@
 	"name": "openlawnz-data",
 	"private": true,
 	"scripts": {
-		"test": "eslint **/*.js --ignore-pattern node_modules/ && mocha"
+		"test": "set SUPPRESS_LOGGING=true && mocha",
+		"parser": "yarn test && cd parser && node index.js --env=local"
 	},
 	"workspaces": [
-		"controller",
 		"common",
-		"processor",
-		"test"
-	],
-	"devDependencies": {
-		"eslint": "^5.15.1"
-	}
+		"parser",
+		"pipeline",
+		"test",
+		"mturk"
+	]
 }

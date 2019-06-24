@@ -1,0 +1,7 @@
+{
+	"start_pdf_processor_at_word_processors_count": 0,
+	"concurrent_word_processors": 1,
+	"autobatch_path": "",
+	"word_path": "",
+	"word_dotm": ""
+}
