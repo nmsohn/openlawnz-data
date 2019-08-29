@@ -2,6 +2,14 @@
 
 There are 2 parts: Pipeline (getting data), and Parser (parsing the data).
 
+## Parsers Quick Start for Openlaw NZ volunteers
+
+1. Ask for a copy of the OpenLaw NZ DB in the Slack channel for your own MySQL server setup
+    * If you're interested in volunteering please get in touch!
+2. Follow "General requirements", "env" and "Installing" steps below
+3. Look at the [Database Setup](#database-setup) section
+3. Look at the [Parser](#parser) section
+
 ## General requirements
 
 - Yarn
@@ -16,6 +24,13 @@ Where you see the `env` option in a command, it will look for the corresponding 
 ```bash
 yarn install
 ```
+
+## Database Setup
+
+There are 2 databases:
+
+- `pipeline_cases`: this is populated by running the pipeline and is not affected by the parsers
+- `cases`: this is populated and mutated by running the parsers
 
 ## Pipeline
 
@@ -102,7 +117,7 @@ node getLegislation.js --env=<env> --datasource=<datasource> [--datalocation=<da
 
 ## Parser
 
-- Parser processes data loaded into it by the pipeline and can be run as many times as you like
+- Each time a full run of the parsers is started the `cases` database is emptied and filled with the `pipeline_cases` data before running through each parser
 - Each script can be run individually
 
 ### Running example
