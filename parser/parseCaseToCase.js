@@ -97,12 +97,22 @@ const run = async (connection, logDir) => {
 				}
 			});
 		});
-		// replace current item in DB
+		/**
+		 * upsert statement
+		 * if duplicate id, it will update the row
+		 * if not, it will insert the row
+		 */
 		for (var count_key in mapped_count) {
 			insertQueries.push(
-				`replace into cases_cited (case_origin, case_cited, citation_count) values ('${key}', '${count_key}', ' ${
-					mapped_count[count_key]
-				}')`
+				`INSERT INTO cases_cited (case_origin, case_cited, citation_count) 
+				VALUES ('${key}', '${count_key}', ' ${mapped_count[count_key]}')
+				ON CONFLICT (id) DO UPDATE 
+				SET case_origin = '${key}', 
+					case_cited = '${count_key}',
+					citation_count = ' ${mapped_count[count_key]}';`
+				// `replace into cases_cited (case_origin, case_cited, citation_count) values ('${key}', '${count_key}', ' ${
+				// 	mapped_count[count_key]
+				// }');`
 			);
 		}
 	}
@@ -111,7 +121,9 @@ const run = async (connection, logDir) => {
 	);
 	console.log("Insert", insertQueries.length);
 	if (insertQueries.length > 0) {
-		await connection.query(insertQueries.join(";"));
+		await connection.task(t => {
+			return t.batch(insertQueries);
+		});
 	}
 
 	console.log("Done");

@@ -7,6 +7,7 @@ const run = async (connection, pipeline_connection, logDir) => {
 		setTimeout(async () => {
 			console.log('TRUNCATE "cases" tables');
 
+			//if exists?
 			await connection.query(`
 				SET FOREIGN_KEY_CHECKS = 0; 
 				TRUNCATE TABLE case_citations;
