@@ -1,4 +1,8 @@
-const { setLogFile, setLogDir, log } = require("../common/functions").makeLogger();
+const {
+	setLogFile,
+	setLogDir,
+	log
+} = require("../common/functions").makeLogger();
 
 // https://stackoverflow.com/questions/20856197/remove-non-ascii-character-in-string
 const removeNonASCII = str => {
@@ -115,7 +119,9 @@ const processCase = l => {
 			log(`\nFootnote Contexts\n ${l.case_footnote_contexts}`, true, 7);
 			log(`\nProcessed Footnotes\n${processedFootnotes.join("\n")}`, true, 7);
 			log(
-				`\nProcessed Footnote Contexts\n ${processedFootnoteContexts.join("\n")}`,
+				`\nProcessed Footnote Contexts\n ${processedFootnoteContexts.join(
+					"\n"
+				)}`,
 				true,
 				7
 			);
@@ -189,12 +195,17 @@ const processCase = l => {
 					log(`\n\n[${l.id}] Footer/context starts and ends`, true, 6);
 					log(`\nFootnotes\n${l.case_footnotes}`, true, 6);
 					log(`\nFootnote Contexts\n ${l.case_footnote_contexts}`, true, 6);
-					log(`\nProcessed Footnotes\n${processedFootnotes.join("\n")}`, true, 6);
 					log(
-						
+						`\nProcessed Footnotes\n${processedFootnotes.join("\n")}`,
+						true,
+						6
+					);
+					log(
 						`\nProcessed Footnote Contexts\n ${processedFootnoteContexts.join(
 							"\n"
-						)}`, true, 6
+						)}`,
+						true,
+						6
 					);
 					isValid = false;
 					break;
@@ -206,7 +217,11 @@ const processCase = l => {
 			log(`\nFootnote Contexts\n ${l.case_footnote_contexts}`, true, 8);
 			log(`\nProcessed Footnotes\n${processedFootnotes.join("\n")}`, true, 8);
 			log(
-				`\nProcessed Footnote Contexts\n ${processedFootnoteContexts.join("\n")}`, true, 8
+				`\nProcessed Footnote Contexts\n ${processedFootnoteContexts.join(
+					"\n"
+				)}`,
+				true,
+				8
 			);
 		}
 	}
@@ -235,12 +250,20 @@ const run = async (connection, logDir) => {
 	const logDetails = l => {
 		log(l.case_text, false, `${l.id}`);
 		log(processCaseText(l.case_text), false, `${l.id}-processed`);
-		
+
 		if (l.case_footnotes) {
-			log(processFootnotes(l.case_footnotes).join("\n"), false, `${l.id}-footnotes`);
+			log(
+				processFootnotes(l.case_footnotes).join("\n"),
+				false,
+				`${l.id}-footnotes`
+			);
 		}
 		if (l.case_footnote_contexts) {
-			log(processFootnoteContexts(l.case_footnote_contexts).join("\n"), false, `${l.id}-footnotecontexts`);
+			log(
+				processFootnoteContexts(l.case_footnote_contexts).join("\n"),
+				false,
+				`${l.id}-footnotecontexts`
+			);
 		}
 	};
 
@@ -270,7 +293,7 @@ const run = async (connection, logDir) => {
 			logDetails(l);
 		}
 
-		await connection.query("UPDATE cases SET ? WHERE id = ?", [
+		await connection.none("UPDATE cases SET $1 WHERE id = $2", [
 			{
 				case_footnotes: processedFootnotes.join("\n"),
 				case_footnotes_count: processedFootnotes.length,

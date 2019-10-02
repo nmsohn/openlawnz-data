@@ -110,9 +110,6 @@ const run = async (connection, logDir) => {
 				SET case_origin = '${key}', 
 					case_cited = '${count_key}',
 					citation_count = ' ${mapped_count[count_key]}';`
-				// `replace into cases_cited (case_origin, case_cited, citation_count) values ('${key}', '${count_key}', ' ${
-				// 	mapped_count[count_key]
-				// }');`
 			);
 		}
 	}

@@ -33,7 +33,7 @@ const run = async (connection, logDir) => {
 	console.log("Loading all cases and case citations");
 
 	// First insert all the courts into the DB
-
+	//TODO: chaining?
 	const [[results, courts]] = await connection.query(
 		`
 		INSERT INTO courts (acronym, court_name) VALUES ?;
@@ -42,10 +42,9 @@ const run = async (connection, logDir) => {
 		[Object.keys(courtsMap).map(acronym => [acronym, courtsMap[acronym]])]
 	);
 
-	let [[cases, case_citations]] = await connection.query(`
-		SELECT * FROM cases;
-		SELECT * FROM case_citations;
-	`);
+	let [[cases, case_citations]] = await connection.task(t => {
+		return t.batch(["SELECT * FROM cases;", "SELECT * FROM case_citations;"]);
+	});
 
 	// We can select one citation for each case to determine the court
 
@@ -55,8 +54,10 @@ const run = async (connection, logDir) => {
 				ci => ci.case_id === c.id
 			);
 			if (first_case_citation) {
-				const [citation_name] = first_case_citation.citation.match(/([a-zA-Z]+)/);
-				if(citation_name) {
+				const [citation_name] = first_case_citation.citation.match(
+					/([a-zA-Z]+)/
+				);
+				if (citation_name) {
 					return {
 						id: c.id,
 						citation: citation_name.trim()
@@ -71,24 +72,25 @@ const run = async (connection, logDir) => {
 		await connection.beginTransaction();
 
 		for (let x = 0; x < cases.length; x++) {
-			
 			console.log(`Processing court to cases ${x + 1}/${cases.length}`);
 
 			const legalCase = cases[x];
 
-			const found_court = courts.find(c => legalCase.citation.toUpperCase().includes(c.acronym.toUpperCase()));
-				
-			if(found_court) {
-				
-				await connection.query("INSERT INTO court_to_cases (court_id, case_id) VALUES ?",
-					[
-						[
-							[found_court.id, legalCase.id]
-						]
-					]
+			const found_court = courts.find(c =>
+				legalCase.citation.toUpperCase().includes(c.acronym.toUpperCase())
+			);
+
+			if (found_court) {
+				await connection.query(
+					"INSERT INTO court_to_cases (court_id, case_id) VALUES ?",
+					[[[found_court.id, legalCase.id]]]
 				);
 			} else {
-				log('[' + legalCase.id + '] ' + legalCase.citation + '\n', true, 'missing-courts');
+				log(
+					"[" + legalCase.id + "] " + legalCase.citation + "\n",
+					true,
+					"missing-courts"
+				);
 			}
 		}
 

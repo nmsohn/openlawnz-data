@@ -40,12 +40,14 @@ const run = async (connection, logDir) => {
 				citation +
 				"' where case_id = '" +
 				row.id +
-				"'"
+				"';"
 		);
 	});
 	console.log("Update", updateCitations.length);
 	if (updateCitations.length > 0) {
-		await connection.query(updateCitations.join(";"));
+		await connection.task(t => {
+			return t.batch(updateCitations);
+		});
 	}
 
 	console.log("Done");

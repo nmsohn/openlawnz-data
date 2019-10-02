@@ -39,7 +39,7 @@ const run = async (connection, logDir) => {
 
 	console.log("Loading all cases");
 
-	const [results] = await connection.query("SELECT * FROM cases");
+	const [results] = await connection.any("SELECT * FROM cases");
 
 	try {
 		await connection.beginTransaction();
@@ -77,7 +77,7 @@ const run = async (connection, logDir) => {
 			}
 
 			if (Object.keys(updateObj).length > 0) {
-				await connection.query("UPDATE cases SET ? WHERE id = ?", [
+				await connection.none("UPDATE cases SET $1 WHERE id = $2", [
 					updateObj,
 					row.id
 				]);

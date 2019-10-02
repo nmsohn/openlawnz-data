@@ -467,11 +467,12 @@ const run = async (connection, logDir) => {
 	setLogFile(__filename);
 
 	console.log("Loading all cases");
-
-	const [[cases, legislations]] = await connection.query(`
-		SELECT * FROM cases.cases; 
-		SELECT * FROM cases.legislation;
-	`);
+	const [[cases, legislations]] = await connection.task(t => {
+		return t.batch([
+			"SELECT * FROM cases.cases;",
+			"SELECT * FROM cases.legislation;"
+		]);
+	});
 
 	const casesLength = cases.length;
 
@@ -505,26 +506,23 @@ const run = async (connection, logDir) => {
 					);
 				});
 
-				await connection.query(
-					"INSERT INTO legislation_to_cases (legislation_id, section, case_id, count) VALUES ?",
+				await connection.none(
+					"INSERT INTO legislation_to_cases (legislation_id, section, case_id, count) VALUES $1, $2, $3, $4",
 					[insertValues]
 				);
 			}
 
-			await connection.query(
-				"UPDATE cases SET ? WHERE id = ?",
-				[
-					{
-						extraction_confidence: extractionConfidence
-					},
-					legalCase.id
-				]
-			);
+			await connection.none("UPDATE cases SET $1 WHERE id = $2", [
+				{
+					extraction_confidence: extractionConfidence
+				},
+				legalCase.id
+			]);
 
 			await connection.commit();
 		} catch (ex) {
 			await connection.rollback();
-			console.log('[!] Processing error');
+			console.log("[!] Processing error");
 			log(
 				JSON.stringify(insertValues, null, 4) +
 					"\nExtraction confidence" +
