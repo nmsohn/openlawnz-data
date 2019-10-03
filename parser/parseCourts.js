@@ -29,7 +29,7 @@ const run = async (connection, logDir) => {
 	console.log('Loading all cases and case citations');
 
 	// First insert all the courts into the DB
-
+	//TODO: chaining?
 	const [ [ results, courts ] ] = await connection.query(
 		`
 		INSERT INTO courts (acronym, court_name) VALUES ?;
@@ -38,10 +38,9 @@ const run = async (connection, logDir) => {
 		[ Object.keys(courtsMap).map((acronym) => [ acronym, courtsMap[acronym] ]) ]
 	);
 
-	let [ [ cases, case_citations ] ] = await connection.query(`
-		SELECT * FROM cases;
-		SELECT * FROM case_citations;
-	`);
+	let [ [ cases, case_citations ] ] = await connection.task((t) => {
+		return t.batch([ 'SELECT * FROM cases;', 'SELECT * FROM case_citations;' ]);
+	});
 
 	// We can select one citation for each case to determine the court
 

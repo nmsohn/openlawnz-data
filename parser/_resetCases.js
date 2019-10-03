@@ -9,9 +9,18 @@ const run = async (connection, pipeline_connection, logDir) => {
 			// SET session_replication_role = 'replica';
 			// SET session_replication_role = 'origin';
 
-			// START TRANSACTION;
-			// SET CONSTRAINTS ALL DEFERRED;
-			// COMMIT TRANSACTION;
+			//if exists?
+			await connection.query(`
+				SET FOREIGN_KEY_CHECKS = 0; 
+				TRUNCATE TABLE case_citations;
+				TRUNCATE TABLE case_pdfs;
+				TRUNCATE TABLE court_to_cases;
+				TRUNCATE TABLE courts;
+				TRUNCATE TABLE cases;
+				TRUNCATE TABLE cases_cited;
+				TRUNCATE TABLE legislation_to_cases; 
+				SET FOREIGN_KEY_CHECKS = 1;
+			`);
 
 			// ALTER TABLE table_name DISABLE TRIGGER ALL;
 			// TRUNCATE TABLE case_citations;
