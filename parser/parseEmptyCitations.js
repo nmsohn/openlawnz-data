@@ -1,6 +1,6 @@
 /**
  * Fill empty citations
- * @param MysqlConnection connection
+ * @param PostgresqlConnection connection
  */
 // search for rows in the case_citations table where citation is blank
 // get the full case data including case text

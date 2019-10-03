@@ -1,30 +1,27 @@
 const fs = require('fs-extra');
-const path = require("path");
+const path = require('path');
 // const mysql = require("mysql2/promise");
-const uuidv1 = require("uuid/v1"); //git repo no longer maintained
+const uuidv1 = require('uuid/v1'); //git repo no longer maintained
 
 // Charset must be be utf8mb4 in db and connection
 // Edit my.cnf on any new mysql sever https://mathiasbynens.be/notes/mysql-utf8mb4
 // Returns a connection promise
 
-const options = {
-
-}
-const pgPromise = require("pg-promise")(options);
+const options = {};
+const pgPromise = require('pg-promise')(options);
 
 module.exports = async (env, resumeSessionId) => {
-
-	const rootDir = path.resolve(__dirname + "/../");
+	const rootDir = path.resolve(__dirname + '/../');
 	const sessionId = resumeSessionId || uuidv1();
-	const cacheDir = path.join(rootDir, ".cache", sessionId);
-	const logDir = path.join(rootDir, ".logs", sessionId);
+	const cacheDir = path.join(rootDir, '.cache', sessionId);
+	const logDir = path.join(rootDir, '.logs', sessionId);
 
 	if (!env) {
-		throw new Error("Missing env");
+		throw new Error('Missing env');
 	}
 
-	require("dotenv").config({
-		path: rootDir + "/.env." + env
+	require('dotenv').config({
+		path: rootDir + '/.env.' + env
 	});
 
 	// Ensure cache directory exists
@@ -35,12 +32,12 @@ module.exports = async (env, resumeSessionId) => {
 
 	const conn = {
 		host: process.env.DB_HOST,
-		port: "",
+		port: process.env.PORT,
 		user: process.env.DB_USER,
 		password: process.env.DB_PASS,
-		database: "cases",
-		client_encoding = 'UTF8'
-	}
+		database: 'cases',
+		client_encoding: 'UTF8'
+	};
 	// await mysql.createConnection({
 	// 	host: process.env.DB_HOST,
 	// 	user: process.env.DB_USER,
@@ -54,11 +51,11 @@ module.exports = async (env, resumeSessionId) => {
 		host: process.env.DB_HOST,
 		user: process.env.DB_USER,
 		password: process.env.DB_PASS,
-		database: "pipeline_cases",
-		port: "",
-		client_encoding = 'UTF8'
-	}
-	
+		database: 'pipeline_cases',
+		port: process.env.PORT,
+		client_encoding: 'UTF8'
+	};
+
 	// await mysql.createConnection({
 	// 	host: process.env.DB_HOST,
 	// 	user: process.env.DB_USER,
@@ -77,6 +74,5 @@ module.exports = async (env, resumeSessionId) => {
 		logDir,
 		connection,
 		pipeline_connection
-	}
-
+	};
 };

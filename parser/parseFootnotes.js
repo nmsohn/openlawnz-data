@@ -222,7 +222,7 @@ const processCase = l => {
 
 /**
  * Parse Footnotes
- * @param MysqlConnection connection
+ * @param PostgresqlConnection connection
  */
 const run = async (connection, logDir) => {
 	console.log("\n-----------------------------------");

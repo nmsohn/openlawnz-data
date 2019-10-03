@@ -2,7 +2,6 @@
 	"name": "common",
 	"version": "1.0.0",
 	"dependencies": {
-		"bluebird": "^3.7.0",
 		"dotenv": "^7.0.0",
 		"mysql2": "^1.6.5",
 		"pg-promise": "^9.2.1"

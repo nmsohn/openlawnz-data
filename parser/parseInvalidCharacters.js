@@ -1,6 +1,6 @@
 /**
  * Parse Invalid Characters
- * @param MysqlConnection connection
+ * @param PostgresqlConnection connection
  */
 
 const characterReplaceMap = [
