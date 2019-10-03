@@ -39,8 +39,7 @@ const run = async (connection, logDir) => {
 			"update case_citations set citation = '" +
 				citation +
 				"' where case_id = '" +
-				row.id +
-				"';"
+				row.id
 		);
 	});
 	console.log("Update", updateCitations.length);

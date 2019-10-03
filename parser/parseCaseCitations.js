@@ -9,16 +9,19 @@
 const regDoubleCites = /(\[|\()\d{4}(\]|\))[\s\S](\d{0,3}[\s\S])\w{1,5}[\s\S]\d{1,5}(([\s\S]\(\w*\))?)(;|,)\s(\[|\()\d{4}(\]|\))[\s\S](\d{0,3}[\s\S])\w{1,5}[\s\S]\d{1,5}(([\s\S]\(\w*\))?)/g;
 
 const run = async (connection, logDir) => {
-	console.log('\n-----------------------------------');
-	console.log('Parse Case Citations');
-	console.log('-----------------------------------\n');
+	console.log("\n-----------------------------------");
+	console.log("Parse Case Citations");
+	console.log("-----------------------------------\n");
 
 	const commaOrSemi = /,|;/g; // for splitting double citations - delimted by comma or semicolon
 
-	console.log('Loading all cases and case citations');
+	console.log("Loading all cases and case citations");
 
-	const [ results ] = await connection.task((t) => {
-		return t.batch([ t.query('select * from cases;'), t.query('select * from case_citations;') ]);
+	const [results] = await connection.task(t => {
+		return t.batch([
+			t.query("select * from cases"),
+			t.query("select * from case_citations")
+		]);
 	});
 
 	var allCases = results[0];
@@ -53,7 +56,7 @@ const run = async (connection, logDir) => {
 			if (foundCase && !foundSecondaryCase) {
 				// if there's a match - ie if the first citation is in the db, then we know we can add another citation that refers to the same case
 				insertQueries.push(
-					`insert into case_citations (case_id, citation) values ('${foundCase.case_id}', '${secondaryCitation}');`
+					`insert into case_citations (case_id, citation) values ('${foundCase.case_id}', '${secondaryCitation}')`
 				);
 				// In case secondary citation comes up again
 				allCitations.push({
@@ -63,20 +66,20 @@ const run = async (connection, logDir) => {
 			}
 		}
 	});
-	console.log('Insert', insertQueries.length);
+	console.log("Insert", insertQueries.length);
 	if (insertQueries.length > 0) {
-		await connection.task((t) => {
+		await connection.task(t => {
 			return t.batch(insertQueries);
 		});
 	}
-	console.log('Done');
+	console.log("Done");
 };
 
 if (require.main === module) {
-	const argv = require('yargs').argv;
+	const argv = require("yargs").argv;
 	(async () => {
 		try {
-			const { connection, logDir } = await require('../common/setup')(argv.env);
+			const { connection, logDir } = await require("../common/setup")(argv.env);
 			await run(connection, logDir);
 		} catch (ex) {
 			console.log(ex);

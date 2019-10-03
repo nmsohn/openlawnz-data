@@ -40,65 +40,61 @@ const run = async (connection, logDir) => {
 	console.log("Loading all cases");
 
 	const [results] = await connection.any("SELECT * FROM cases");
+	conntection
+		.tx(async t => {
+			for (let x = 0; x < results.length; x++) {
+				const row = results[x];
 
-	try {
-		await connection.beginTransaction();
+				console.log(`Processing ${x + 1}/${results.length}`);
 
-		for (let x = 0; x < results.length; x++) {
-			const row = results[x];
+				const [case_text, caseTextHasInvalidCharacter] = replaceText(
+					row.case_text
+				);
+				const [case_footnotes, caseFootnotesHasInvalidCharacter] = replaceText(
+					row.case_footnotes
+				);
+				const [
+					case_footnote_contexts,
+					caseFootnoteContextsHasInvalidCharacter
+				] = replaceText(row.case_footnote_contexts);
 
-			console.log(`Processing ${x + 1}/${results.length}`);
+				let updateObj = {};
+				if (caseTextHasInvalidCharacter) {
+					updateObj["case_text"] = case_text;
+					invalidCaseTextCount++;
+				}
 
-			const [case_text, caseTextHasInvalidCharacter] = replaceText(
-				row.case_text
+				if (caseFootnotesHasInvalidCharacter) {
+					updateObj["case_footnotes"] = case_footnotes;
+					invalidFootnotesCount++;
+				}
+
+				if (caseFootnoteContextsHasInvalidCharacter) {
+					updateObj["case_footnote_contexts"] = case_footnote_contexts;
+					invalidFootnoteContextsCount++;
+				}
+
+				if (Object.keys(updateObj).length > 0) {
+					await t.none("UPDATE cases SET $1 WHERE id = $2", [
+						updateObj,
+						row.id
+					]);
+				}
+			}
+			console.log(`Invalid case text: ${invalidCaseTextCount}`);
+			console.log(`Invalid footnotes: ${invalidFootnotesCount}`);
+			console.log(`Invalid footnote contexts: ${invalidFootnoteContextsCount}`);
+
+			console.log(
+				`Updating ${invalidCaseTextCount +
+					invalidFootnotesCount +
+					invalidFootnoteContextsCount} texts that have invalid characters`
 			);
-			const [case_footnotes, caseFootnotesHasInvalidCharacter] = replaceText(
-				row.case_footnotes
-			);
-			const [
-				case_footnote_contexts,
-				caseFootnoteContextsHasInvalidCharacter
-			] = replaceText(row.case_footnote_contexts);
-
-			let updateObj = {};
-			if (caseTextHasInvalidCharacter) {
-				updateObj["case_text"] = case_text;
-				invalidCaseTextCount++;
-			}
-
-			if (caseFootnotesHasInvalidCharacter) {
-				updateObj["case_footnotes"] = case_footnotes;
-				invalidFootnotesCount++;
-			}
-
-			if (caseFootnoteContextsHasInvalidCharacter) {
-				updateObj["case_footnote_contexts"] = case_footnote_contexts;
-				invalidFootnoteContextsCount++;
-			}
-
-			if (Object.keys(updateObj).length > 0) {
-				await connection.none("UPDATE cases SET $1 WHERE id = $2", [
-					updateObj,
-					row.id
-				]);
-			}
-		}
-
-		console.log(`Invalid case text: ${invalidCaseTextCount}`);
-		console.log(`Invalid footnotes: ${invalidFootnotesCount}`);
-		console.log(`Invalid footnote contexts: ${invalidFootnoteContextsCount}`);
-
-		console.log(
-			`Updating ${invalidCaseTextCount +
-				invalidFootnotesCount +
-				invalidFootnoteContextsCount} texts that have invalid characters`
-		);
-
-		await connection.commit();
-	} catch (ex) {
-		await connection.rollback();
-		console.log(ex);
-	}
+		})
+		.then(data => {})
+		.catch(error => {
+			console.log(error);
+		});
 
 	console.log("Done");
 };

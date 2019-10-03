@@ -469,8 +469,8 @@ const run = async (connection, logDir) => {
 	console.log("Loading all cases");
 	const [[cases, legislations]] = await connection.task(t => {
 		return t.batch([
-			"SELECT * FROM cases.cases;",
-			"SELECT * FROM cases.legislation;"
+			"SELECT * FROM cases.cases",
+			"SELECT * FROM cases.legislation"
 		]);
 	});
 
@@ -488,53 +488,55 @@ const run = async (connection, logDir) => {
 
 		let insertValues = [];
 
-		await connection.beginTransaction();
-
-		try {
-			if (legislationReferences.length > 0) {
-				legislationReferences.forEach(legislationReference => {
-					Object.keys(legislationReference.groupedSections).forEach(
-						sectionKey => {
-							const section = legislationReference.groupedSections[sectionKey];
-							insertValues.push([
-								legislationReference.id,
-								sectionKey,
-								legalCase.id,
-								section.count
-							]);
-						}
+		await connection
+			.tx(async t => {
+				if (legislationReferences.length > 0) {
+					legislationReferences.forEach(legislationReference => {
+						Object.keys(legislationReference.groupedSections).forEach(
+							sectionKey => {
+								const section =
+									legislationReference.groupedSections[sectionKey];
+								insertValues.push([
+									legislationReference.id,
+									sectionKey,
+									legalCase.id,
+									section.count
+								]);
+							}
+						);
+					});
+					const q1 = await t.none(
+						"INSERT INTO legislation_to_cases (legislation_id, section, case_id, count) VALUES $1, $2, $3, $4",
+						[insertValues]
 					);
-				});
+					return q1;
+				}
 
-				await connection.none(
-					"INSERT INTO legislation_to_cases (legislation_id, section, case_id, count) VALUES $1, $2, $3, $4",
-					[insertValues]
+				const q2 = await t.none("UPDATE cases SET $1 WHERE id = $2", [
+					{
+						extraction_confidence: extractionConfidence
+					},
+					legalCase.id
+				]);
+				return q2;
+			})
+			.then(data => {
+				console.log("COMMIT was executed");
+			})
+			.catch(error => {
+				console.log("[!] Processing error");
+				log(
+					JSON.stringify(insertValues, null, 4) +
+						"\nExtraction confidence" +
+						extractionConfidence +
+						"\n" +
+						error,
+					false,
+					"processingerror-" + legalCase.id
 				);
-			}
-
-			await connection.none("UPDATE cases SET $1 WHERE id = $2", [
-				{
-					extraction_confidence: extractionConfidence
-				},
-				legalCase.id
-			]);
-
-			await connection.commit();
-		} catch (ex) {
-			await connection.rollback();
-			console.log("[!] Processing error");
-			log(
-				JSON.stringify(insertValues, null, 4) +
-					"\nExtraction confidence" +
-					extractionConfidence +
-					"\n" +
-					ex,
-				false,
-				"processingerror-" + legalCase.id
-			);
-			//console.log(legislationReferences)
-			//console.log(insertValues)
-		}
+				//console.log(legislationReferences)
+				//console.log(insertValues)
+			});
 	}
 };
 
