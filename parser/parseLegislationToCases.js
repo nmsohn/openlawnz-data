@@ -467,12 +467,10 @@ const run = async (connection, logDir) => {
 	setLogFile(__filename);
 
 	console.log("Loading all cases");
-	const [[cases, legislations]] = await connection.task(t => {
-		return t.batch([
-			"SELECT * FROM cases.cases",
-			"SELECT * FROM cases.legislation"
-		]);
-	});
+	const [[cases, legislations]] = await connection.multi(
+		"SELECT * FROM cases.cases",
+		"SELECT * FROM cases.legislation"
+	);
 
 	const casesLength = cases.length;
 

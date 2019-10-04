@@ -33,18 +33,24 @@ const run = async (connection, logDir) => {
 	console.log("Loading all cases and case citations");
 
 	// First insert all the courts into the DB
-	//TODO: chaining?
-	const [[results, courts]] = await connection.query(
-		`
-		INSERT INTO courts (acronym, court_name) VALUES ?
-		SELECT * FROM courts
-	`,
-		[Object.keys(courtsMap).map(acronym => [acronym, courtsMap[acronym]])]
+	const [[results, courts]] = await connection.multi(
+		("INSERT INTO courts (acronym, court_name) VALUES $1",
+		[Object.keys(courtsMap).map(acronym => [acronym, courtsMap[acronym]])]),
+		"SELECT * FROM courts"
 	);
+	// const [[results, courts]] = await connection.
+	// task(t => {
+	// 	const q1 = t.none("INSERT INTO courts (acronym, court_name) VALUES $1", [
+	// 		Object.keys(courtsMap).map(acronym => [acronym, courtsMap[acronym]])
+	// 	]);
+	// 	const q2 = t.any("SELECT * FROM courts");
+	// 	return t.batch([q1, q2]);
+	// });
 
-	let [[cases, case_citations]] = await connection.task(t => {
-		return t.batch(["SELECT * FROM cases;", "SELECT * FROM case_citations"]);
-	});
+	let [[cases, case_citations]] = await connection.multi([
+		"SELECT * FROM cases",
+		"SELECT * FROM case_citations"
+	]);
 
 	// We can select one citation for each case to determine the court
 
@@ -68,38 +74,37 @@ const run = async (connection, logDir) => {
 			return null;
 		})
 		.filter(c => c !== null);
-	try {
-		await connection.beginTransaction();
 
-		for (let x = 0; x < cases.length; x++) {
-			console.log(`Processing court to cases ${x + 1}/${cases.length}`);
+	await connection
+		.tx(async t => {
+			for (let x = 0; x < cases.length; x++) {
+				console.log(`Processing court to cases ${x + 1}/${cases.length}`);
 
-			const legalCase = cases[x];
+				const legalCase = cases[x];
 
-			const found_court = courts.find(c =>
-				legalCase.citation.toUpperCase().includes(c.acronym.toUpperCase())
-			);
-
-			if (found_court) {
-				await connection.query(
-					"INSERT INTO court_to_cases (court_id, case_id) VALUES ?",
-					[[[found_court.id, legalCase.id]]]
+				const found_court = courts.find(c =>
+					legalCase.citation.toUpperCase().includes(c.acronym.toUpperCase())
 				);
-			} else {
-				log(
-					"[" + legalCase.id + "] " + legalCase.citation + "\n",
-					true,
-					"missing-courts"
-				);
+
+				if (found_court) {
+					//TODO: need to check
+					await t.none(
+						"INSERT INTO court_to_cases (court_id, case_id) VALUES $1",
+						[[[found_court.id, legalCase.id]]]
+					);
+				} else {
+					log(
+						"[" + legalCase.id + "] " + legalCase.citation + "\n",
+						true,
+						"missing-courts"
+					);
+				}
 			}
-		}
-
-		await connection.commit();
-	} catch (ex) {
-		await connection.rollback();
-		console.log(ex);
-	}
-
+		})
+		.then(data => {})
+		.catch(error => {
+			console.log(error);
+		});
 	console.log("Done");
 };
 
