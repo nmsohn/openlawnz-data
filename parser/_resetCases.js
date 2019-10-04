@@ -44,15 +44,15 @@ const run = async (connection, pipeline_connection, logDir) => {
 						"INSERT INTO cases.case_pdfs SELECT * FROM pipeline_cases.case_pdfs",
 						r => (count += r.rowCount)
 					);
-					const q2 = t.none(
+					const q2 = t.result(
 						"INSERT INTO cases.cases (id, pdf_id, case_date, case_text, case_name, case_footnotes, case_footnote_contexts) SELECT id, pdf_id, case_date, case_text, case_name, case_footnotes, case_footnote_contexts FROM pipeline_cases.cases",
 						r => (count += r.rowCount)
 					);
-					const q3 = t.none(
+					const q3 = t.result(
 						"INSERT INTO cases.case_citations SELECT * FROM pipeline_cases.case_citations",
 						r => (count += r.rowCount)
 					);
-					const q4 = t.none(
+					const q4 = t.result(
 						"INSERT INTO cases.legislation SELECT * FROM pipeline_cases.legislation",
 						r => (count += r.rowCount)
 					);

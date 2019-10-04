@@ -24,7 +24,10 @@ const calculateLegislationSectionsRange = cases => {
 		lowerRangeValue,
 		standardDeviation,
 		upperRangeValue,
-		randomRangeValue: Math.max(lowerRangeValue, Math.round(Math.random() * upperRangeValue))
+		randomRangeValue: Math.max(
+			lowerRangeValue,
+			Math.round(Math.random() * upperRangeValue)
+		)
 	};
 };
 
@@ -58,7 +61,8 @@ const run = async connection => {
 	console.log("-----------------------------------\n");
 
 	console.log("Loading cases and their legislation section counts");
-	let [cases] = await connection.query(`
+	//TODO: Refactoring
+	let [cases] = await connection.any(`
 		SELECT 
 			cases.id, 
 			case_pdfs.pdf_url, 
@@ -71,15 +75,14 @@ const run = async connection => {
 		WHERE extraction_confidence != 0
 		GROUP BY cases.id;
 	`);
-	
+
 	cases = cases.map(c => {
 		return {
 			...c,
 			legislation_section_count: parseInt(c.legislation_section_count)
-		}
+		};
 	});
 
-	
 	console.log("Calculating standard deviation");
 	const {
 		randomRangeValue,
@@ -97,36 +100,40 @@ const run = async connection => {
 	const validationName =
 		"validation-" + +new Date() + "-σ-" + standardDeviation;
 
-
-	let fields = [
-		"case_id",
-		"pdf",
-		"legislation",
-		"section",
-		"count",
-		"correct"
-	];
+	let fields = ["case_id", "pdf", "legislation", "section", "count", "correct"];
 
 	let rows = [];
 
 	console.log("Populating rows for each case");
 	for (chosenCase of chosenCases) {
-		let [chosenCaseLegislationReferences] = await connection.query(`
-			SELECT * FROM legislation_to_cases 
-			INNER JOIN legislation ON legislation_id = legislation.id 
-			WHERE case_id = ${chosenCase.id};
-		`);
-
-		chosenCaseLegislationReferences.forEach(r => {
+		// let [chosenCaseLegislationReferences] = await connection.any(`
+		// 	SELECT * FROM legislation_to_cases
+		// 	INNER JOIN legislation ON legislation_id = legislation.id
+		// 	WHERE case_id = ${chosenCase.id};
+		// `);
+		// chosenCaseLegislationReferences.forEach(r => {
+		// 	rows.push({
+		// 		case_id: chosenCase.id,
+		// 		pdf: chosenCase.pdf_url,
+		// 		legislation: r.title,
+		// 		section: r.section,
+		// 		count: r.count
+		// 	});
+		// });
+		const q1 = `
+		// 	SELECT * FROM legislation_to_cases
+		// 	INNER JOIN legislation ON legislation_id = legislation.id
+		// 	WHERE case_id = ${chosenCase.id};
+		// `;
+		await connection.each(q1, [], row => {
 			rows.push({
 				case_id: chosenCase.id,
 				pdf: chosenCase.pdf_url,
-				legislation: r.title,
-				section: r.section,
-				count: r.count
+				legislation: row.title,
+				section: row.section,
+				count: row.count
 			});
 		});
-
 	}
 
 	const opts = {
@@ -142,7 +149,8 @@ const run = async connection => {
 		console.error(err);
 	}
 
-	connection.end();
+	// shuts down the pool
+	connection.$pool.end();
 	console.log(`Wrote file ${validationName + ".csv"}`);
 	console.log("Done.");
 };
