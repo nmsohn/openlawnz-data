@@ -9,5 +9,8 @@
 		"request": "^2.88.0",
 		"rimraf": "^2.6.3",
 		"yargs": "^13.2.2"
+	},
+	"devDependencies": {
+		"pg-monitor": "^1.2.2"
 	}
 }
