@@ -50,7 +50,7 @@ const run = async (connection) => {
 	console.log('-----------------------------------\n');
 
 	console.log('Loading cases and their legislation section counts');
-	let cases = await connection.any(`
+	let [ cases ] = await connection.any(`
 		SELECT 
 			cases.id, 
 			case_pdfs.pdf_url, 
