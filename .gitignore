@@ -68,4 +68,4 @@ xpdf/
 *package-lock.json
 
 .DS_STORE
-.vscode/launch.json
+.vscode/
