@@ -10,15 +10,15 @@
 const regNeutralCite = /((?:\[\d{4}\]\s*)(?:(NZACC|NZDC|NZFC|NZHC|NZCA|NZSC|NZEnvC|NZEmpC|NZACA|NZBSA|NZCC|NZCOP|NZCAA|NZDRT|NZHRRT|NZIACDT|NZIPT|NZIEAA|NZLVT|NZLCDT|NZLAT|NZSHD|NZLLA|NZMVDT|NZPSPLA|NZREADT|NZSSAA|NZSAAA|NZTRA))(?:\s*(\w{1,6})))/g;
 
 const run = async (connection, logDir) => {
-	console.log("\n-----------------------------------");
-	console.log("Parse Empty Citations");
-	console.log("-----------------------------------\n");
+	console.log('\n-----------------------------------');
+	console.log('Parse Empty Citations');
+	console.log('-----------------------------------\n');
 
-	console.log("Loading all cases and their case citations");
-	const [results] = await connection.query(
+	console.log('Loading all cases and their case citations');
+	const results = await connection.any(
 		"select * from cases INNER JOIN case_citations ON case_citations.case_id = cases.id WHERE case_citations.citation = ''"
 	);
-	console.log("results", results);
+	console.log('results', results);
 	// array of mysql update statements
 	let updateCitations = [];
 
@@ -35,28 +35,21 @@ const run = async (connection, logDir) => {
 		// for now, limit to the first citation found (in case double citation appears in header - deal with double citations in header later)
 		citation = citation[0];
 		// add to array of update statements
-		updateCitations.push(
-			"update case_citations set citation = '" +
-				citation +
-				"' where case_id = '" +
-				row.id
-		);
+		updateCitations.push("update case_citations set citation = '" + citation + "' where case_id = '" + row.id);
 	});
-	console.log("Update", updateCitations.length);
+	console.log('Update', updateCitations.length);
+	//NOTE: Use tx?
 	if (updateCitations.length > 0) {
-		await connection.task(t => {
-			return t.batch(updateCitations);
-		});
+		await connection.multi(updateCitations.join(";"));
 	}
-
-	console.log("Done");
+	console.log('Done');
 };
 
 if (require.main === module) {
-	const argv = require("yargs").argv;
+	const argv = require('yargs').argv;
 	(async () => {
 		try {
-			const { connection, logDir } = await require("../common/setup")(argv.env);
+			const { connection, logDir } = await require('../common/setup')(argv.env);
 			await run(connection, logDir);
 		} catch (ex) {
 			console.log(ex);
