@@ -3,7 +3,8 @@
 	"private": true,
 	"scripts": {
 		"test": "set SUPPRESS_LOGGING=true && mocha",
-		"parser": "yarn test && cd parser && node index.js --env=local"
+		"parser": "yarn test && cd parser && node index.js --env=local",
+		"debug": "node parseCaseToCase.js --env=dev"
 	},
 	"workspaces": [
 		"common",
