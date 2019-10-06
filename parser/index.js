@@ -19,20 +19,20 @@ const parseLegislationToCases = require('./parseLegislationToCases');
 const run = async () => {
 	console.log('Running all parsers');
 
-	const { connection, pipeline_connection, logDir } = await setup(argv.env);
+	const { pgPromise, connection, pipeline_connection, logDir } = await setup(argv.env);
 	const start = moment();
 
 	console.log(`- logDir: ${logDir}`);
 	console.log(`- Started ${start}`);
 
-	await resetCases(connection, pipeline_connection, logDir);
-	await parseInvalidCharacters(connection, logDir);
-	await parseFootnotes(connection, logDir);
+	await resetCases(pgPromise, connection, pipeline_connection, logDir);
+	await parseInvalidCharacters(pgPromise, connection, logDir);
+	await parseFootnotes(pgPromise, connection, logDir);
 	await parseEmptyCitations(connection, logDir);
 	await parseCaseCitations(connection, logDir);
-	await parseCourts(connection, logDir);
+	await parseCourts(pgPromise, connection, logDir);
 	await parseCaseToCase(connection, logDir);
-	await parseLegislationToCases(connection, logDir);
+	await parseLegislationToCases(pgPromise, connection, logDir);
 	console.log(`All done. Took ${moment().diff(start, 'minutes')} minutes`);
 };
 
