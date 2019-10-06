@@ -18,7 +18,7 @@ const courtsMap = {
  * Parse Invalid Characters
  * @param PostgresqlConnection connection
  */
-const run = async (connection, pgPromise, logDir) => {
+const run = async (pgPromise, connection, logDir) => {
 	console.log('\n-----------------------------------');
 	console.log('Parse courts');
 	console.log('-----------------------------------\n');
@@ -85,7 +85,7 @@ if (require.main === module) {
 	(async () => {
 		try {
 			const { pgPromise, connection, logDir } = await require('../common/setup')(argv.env);
-			await run(connection, pgPromise, logDir);
+			await run(pgPromise, connection, logDir);
 		} catch (ex) {
 			console.log(ex);
 		}
