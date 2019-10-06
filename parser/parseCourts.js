@@ -59,7 +59,7 @@ const run = async (connection, pgPromise, logDir) => {
 		})
 		.filter((c) => c !== null);
 
-	await connection.tx(async (t) => {
+	await connection.tx((t) => {
 		for (let x = 0; x < cases.length; x++) {
 			console.log(`Processing court to cases ${x + 1}/${cases.length}`);
 
@@ -68,7 +68,7 @@ const run = async (connection, pgPromise, logDir) => {
 			const found_court = courts.find((c) => legalCase.citation.toUpperCase().includes(c.acronym.toUpperCase()));
 
 			if (found_court) {
-				return await t.none('INSERT INTO court_to_cases (court_id, case_id) VALUES ($1, $2)', [
+				return t.none('INSERT INTO court_to_cases (court_id, case_id) VALUES ($1, $2)', [
 					found_court.id,
 					legalCase.id
 				]);

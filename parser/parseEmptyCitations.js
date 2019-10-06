@@ -38,7 +38,6 @@ const run = async (connection, logDir) => {
 		updateCitations.push("update case_citations set citation = '" + citation + "' where case_id = '" + row.id);
 	});
     console.log('Update', updateCitations.length);
-    //TODO: move into transaction
 	if (updateCitations.length > 0) {
 		await connection.multi(updateCitations.join(';'));
 	}
