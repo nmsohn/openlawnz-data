@@ -17,18 +17,7 @@
 const citation_reg = /((?:\[\d{4}\]\s*)(?:([a-zA-Z]{1,7}))(?:\s*(\w{1,6})))[,;.\s]/g;
 //const old_citation_reg = /\[[0-9]{4}\]\s[a-zA-Z]{1,7}\s*(\w{0,6})[,;.\s]/g
 const moment = require('moment');
-const monitor = require('pg-monitor');
-const options = {
-	query(e) {
-		/* do some of your own processing, if needed */
-		monitor.query(e); // monitor the event;
-	},
-	error(err, e) {
-		/* do some of your own processing, if needed */
-		monitor.error(err, e); // monitor the event;
-	}
-};
-monitor.attach(options);
+
 const run = async (connection, logDir) => {
 	var start = moment().unix();
 
@@ -108,20 +97,22 @@ const run = async (connection, logDir) => {
 				}
 			});
 		});
+
 		/**
-		 * upsert statement
+		 * NOTE: I created a composite key as a primary key for this table:
+		 * alter table cases.cases_cited add constraint cases_cited_pkey primary key (case_origin, case_cited)
+		 * What upsert statement does:
 		 * if duplicate id, it will update the row
 		 * if not, it will insert the row
-		 */
-		//error: there is no unique or exclusion constraint matching the ON CONFLICT specification
+		 * */
 		for (var count_key in mapped_count) {
 			insertQueries.push(
 				`INSERT INTO cases_cited (case_origin, case_cited, citation_count) 
-				VALUES ('${key}', '${count_key}', ' ${mapped_count[count_key]}')
-				ON CONFLICT (case_origin) DO UPDATE 
-				SET case_origin = '${key}', 
+				VALUES ('${key}', '${count_key}', '${mapped_count[count_key]}')
+				ON CONFLICT ON CONSTRAINT cases_cited_pkey DO UPDATE
+				SET case_origin = '${key}',
 					case_cited = '${count_key}',
-					citation_count = ' ${mapped_count[count_key]}'`
+					citation_count = '${mapped_count[count_key]}'`
 			);
 		}
 	}
