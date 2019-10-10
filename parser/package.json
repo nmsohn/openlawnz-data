@@ -5,9 +5,14 @@
 		"async": "^2.6.2",
 		"dotenv": "^7.0.0",
 		"download": "^7.1.0",
+		"fs-extra": "^8.1.0",
 		"moment": "^2.24.0",
 		"request": "^2.88.0",
 		"rimraf": "^2.6.3",
 		"yargs": "^13.2.2"
+	},
+	"devDependencies": {
+		"node-inspect": "^1.11.6",
+		"pg-monitor": "^1.2.2"
 	}
 }

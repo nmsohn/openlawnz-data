@@ -1,24 +1,39 @@
 const fs = require('fs-extra');
-const path = require("path");
-const mysql = require("mysql2/promise");
-const uuidv1 = require("uuid/v1");
+const path = require('path');
+const uuidv1 = require('uuid/v1'); //git repo no longer maintained
 
 // Charset must be be utf8mb4 in db and connection
 // Edit my.cnf on any new mysql sever https://mathiasbynens.be/notes/mysql-utf8mb4
 // Returns a connection promise
-module.exports = async (env, resumeSessionId) => {
 
-	const rootDir = path.resolve(__dirname + "/../");
+const options = {
+	// global event notification;
+	schema: [ 'cases', 'pipeline_cases' ],
+	error(error, e) {
+		if (e.cn) {
+			// A connection-related error;
+			//
+			// Connections are reported back with the password hashed,
+			// for safe errors logging, without exposing passwords.
+			console.log('CN:', e.cn);
+			console.log('EVENT:', error.message || error);
+		}
+	}
+};
+const pgPromise = require('pg-promise')(options);
+
+module.exports = async (env, resumeSessionId) => {
+	const rootDir = path.resolve(__dirname + '/../');
 	const sessionId = resumeSessionId || uuidv1();
-	const cacheDir = path.join(rootDir, ".cache", sessionId);
-	const logDir = path.join(rootDir, ".logs", sessionId);
+	const cacheDir = path.join(rootDir, '.cache', sessionId);
+	const logDir = path.join(rootDir, '.logs', sessionId);
 
 	if (!env) {
-		throw new Error("Missing env");
+		throw new Error('Missing env');
 	}
 
-	require("dotenv").config({
-		path: rootDir + "/.env." + env
+	require('dotenv').config({
+		path: rootDir + '/.env.' + env
 	});
 
 	// Ensure cache directory exists
@@ -27,30 +42,33 @@ module.exports = async (env, resumeSessionId) => {
 	// Ensure log directory exists
 	await fs.ensureDir(logDir);
 
-	let connection = await mysql.createConnection({
+	const conn = {
 		host: process.env.DB_HOST,
+		database: process.env.DB_NAME,
+		port: process.env.PORT,
 		user: process.env.DB_USER,
 		password: process.env.DB_PASS,
-		database: "cases",
-		charset: "UTF8MB4_UNICODE_CI",
-		multipleStatements: true
-	});
+		client_encoding: 'UTF8'
+	};
 
-	let pipeline_connection = await mysql.createConnection({
+	const p_conn = {
 		host: process.env.DB_HOST,
 		user: process.env.DB_USER,
 		password: process.env.DB_PASS,
-		database: "pipeline_cases",
-		charset: "UTF8MB4_UNICODE_CI",
-		multipleStatements: true
-	});
+		database: process.env.DB_NAME,
+		port: process.env.PORT,
+		client_encoding: 'UTF8'
+	};
+
+	let connection = await pgPromise(conn);
+	let pipeline_connection = await pgPromise(p_conn);
 
 	return {
 		sessionId,
 		cacheDir,
 		logDir,
+		pgPromise,
 		connection,
 		pipeline_connection
-	}
-
+	};
 };

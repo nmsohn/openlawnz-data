@@ -3,6 +3,9 @@
 	"version": "1.0.0",
 	"dependencies": {
 		"dotenv": "^7.0.0",
-		"mysql2": "^1.6.5"
+		"pg-promise": "^9.2.1"
+	},
+	"devDependencies": {
+		"pg-monitor": "^1.2.2"
 	}
 }

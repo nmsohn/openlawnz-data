@@ -102,7 +102,7 @@ CREATE TABLE `cases_cited` (
   `case_origin` int(11) NOT NULL,
   `case_cited` int(11) NOT NULL,
   `citation_count` int(11) NOT NULL,
-  PRIMARY KEY (`case_origin`,`case_cited`),
+  PRIMARY KEY cases_cited_pkey (`case_origin`,`case_cited`),
   KEY `case_id_cited_fk_idx` (`case_cited`),
   CONSTRAINT `case_id_cited_fk` FOREIGN KEY (`case_cited`) REFERENCES `cases` (`id`),
   CONSTRAINT `case_id_origin_fk` FOREIGN KEY (`case_origin`) REFERENCES `cases` (`id`)

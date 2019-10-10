@@ -1,15 +1,10 @@
-const {
-	setLogFile,
-	setLogDir,
-	log
-} = require("../common/functions").makeLogger();
-
+const { setLogFile, setLogDir, log } = require('../common/functions').makeLogger();
 /*------------------------------
  Helpers
 ------------------------------*/
 // If legisation name has special characters in it
 RegExp.escape = function(s) {
-	return s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+	return s.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
 };
 
 String.prototype.matchAll = function(regexp) {
@@ -30,7 +25,7 @@ String.prototype.matchAll = function(regexp) {
  * @param {string} caseText
  */
 const findLegislationTitleIndicesInCaseText = (legislationTitle, caseText) => {
-	const search = new RegExp(RegExp.escape(legislationTitle), "gi");
+	const search = new RegExp(RegExp.escape(legislationTitle), 'gi');
 	return caseText.matchAll(search);
 };
 
@@ -43,10 +38,8 @@ const findLegislationTitleIndicesInCaseText = (legislationTitle, caseText) => {
 const findLegislationDefinedTermsInCaseText = (legislationTitle, caseText) => {
 	const search = new RegExp(
 		// `${RegExp.escape(legislationTitle)} \\((the\\s)?(.*?)\\)`,
-		`${RegExp.escape(
-			legislationTitle
-		)} \\((?:“|'|')?((the\\s)?(.*?))(?:”|'|')?\\)`,
-		"gi"
+		`${RegExp.escape(legislationTitle)} \\((?:“|'|')?((the\\s)?(.*?))(?:”|'|')?\\)`,
+		'gi'
 	);
 	return caseText.matchAll(search);
 };
@@ -57,7 +50,7 @@ const findLegislationDefinedTermsInCaseText = (legislationTitle, caseText) => {
  * @param {string} caseText
  */
 const findDefinedTermIndicesInCaseText = (definedTerm, caseText) => {
-	const search = new RegExp(RegExp.escape(definedTerm), "gi");
+	const search = new RegExp(RegExp.escape(definedTerm), 'gi');
 	return caseText.matchAll(search);
 };
 
@@ -67,10 +60,8 @@ const findDefinedTermIndicesInCaseText = (definedTerm, caseText) => {
  * @param {Array} legisationReferences
  */
 const findLegislationAtIndex = (index, legisationReferences) => {
-	return legisationReferences.find(legislationReference =>
-		legislationReference.indexesInCase.find(
-			indexInCase => indexInCase === index
-		)
+	return legisationReferences.find((legislationReference) =>
+		legislationReference.indexesInCase.find((indexInCase) => indexInCase === index)
 	);
 };
 
@@ -80,10 +71,8 @@ const findLegislationAtIndex = (index, legisationReferences) => {
  * @param {Array} legisationReferences
  */
 const findLegislationMissingYearAtIndex = (index, legisationReferences) => {
-	return legisationReferences.find(legislationReference =>
-		legislationReference.indexesMissingYear.find(
-			indexesMissingYear => indexesMissingYear === index
-		)
+	return legisationReferences.find((legislationReference) =>
+		legislationReference.indexesMissingYear.find((indexesMissingYear) => indexesMissingYear === index)
 	);
 };
 
@@ -93,9 +82,7 @@ const findLegislationMissingYearAtIndex = (index, legisationReferences) => {
  * @param {Array} legisationReferences
  */
 const findLegislationById = (id, legisationReferences) => {
-	return legisationReferences.find(
-		legislationReference => legislationReference.id === id
-	);
+	return legisationReferences.find((legislationReference) => legislationReference.id === id);
 };
 
 /**
@@ -104,9 +91,7 @@ const findLegislationById = (id, legisationReferences) => {
  * @param {Array} definedTerms
  */
 const findDefinedTermAtIndex = (index, definedTerms) => {
-	return definedTerms.find(definedTerm =>
-		definedTerm.indexesInCase.find(indexInCase => indexInCase === index)
-	);
+	return definedTerms.find((definedTerm) => definedTerm.indexesInCase.find((indexInCase) => indexInCase === index));
 };
 
 /**
@@ -115,11 +100,7 @@ const findDefinedTermAtIndex = (index, definedTerms) => {
  * @param {string} word
  * @param {Array} legislationTitleWords
  */
-const legislationTitleHasWordAtWordIndex = (
-	index,
-	word,
-	legislationTitleWords
-) => {
+const legislationTitleHasWordAtWordIndex = (index, word, legislationTitleWords) => {
 	if (!legislationTitleWords[index]) {
 		return false;
 	}
@@ -135,12 +116,7 @@ const legislationTitleHasWordAtWordIndex = (
  * @param {Array} legislation
  * @param {Array} caseWords
  */
-const iterateThroughMultipleSections = (
-	offset,
-	oldi,
-	legislation,
-	caseWords
-) => {
+const iterateThroughMultipleSections = (offset, oldi, legislation, caseWords) => {
 	let j = 2;
 	while (j < offset) {
 		if (caseWords[oldi + j].match(/^[0-9]+/)) {
@@ -150,11 +126,7 @@ const iterateThroughMultipleSections = (
 	}
 };
 
-const findAndAssociateTextWithLegislation = (
-	text,
-	legislationReferences,
-	currentLegislation
-) => {
+const findAndAssociateTextWithLegislation = (text, legislationReferences, currentLegislation) => {
 	// Go through all case text
 	// If find section, find its associated legislation
 	// If footnote, run nested function, passing in current legislation
@@ -163,34 +135,28 @@ const findAndAssociateTextWithLegislation = (
 	let definedTermReferences = [];
 
 	// Find legislation title indices and populate definedTerms mentioned
-	legislationReferences.forEach(legislation => {
+	legislationReferences.forEach((legislation) => {
 		// Set max legislation title length. This will be used when doing a forward search later in the code
 		MAX_LEGISLATION_TITLE_WORDS_LENGTH = Math.max(
 			MAX_LEGISLATION_TITLE_WORDS_LENGTH,
 			legislation.legislationTitleWords.length
 		);
 
-		const foundTitleIndices = findLegislationTitleIndicesInCaseText(
-			legislation.title,
-			text
-		);
+		const foundTitleIndices = findLegislationTitleIndicesInCaseText(legislation.title, text);
 		if (foundTitleIndices) {
-			foundTitleIndices.forEach(found => {
+			foundTitleIndices.forEach((found) => {
 				legislation.indexesInCase.push(found.index);
 			});
 
 			// If this legislation is referenced, treat all following references
 			// for a legislation with this title but no year as referring to this
 			const foundMissingYear = findLegislationTitleIndicesInCaseText(
-				legislation.title.substring(
-					0,
-					legislation.title.indexOf(legislation.title.match(/\s[0-9]+/))
-				),
+				legislation.title.substring(0, legislation.title.indexOf(legislation.title.match(/\s[0-9]+/))),
 				text
 			);
 
 			if (foundMissingYear) {
-				foundMissingYear.forEach(missing => {
+				foundMissingYear.forEach((missing) => {
 					if (!legislation.indexesInCase.includes(missing.index)) {
 						legislation.indexesMissingYear.push(missing.index);
 					}
@@ -198,16 +164,13 @@ const findAndAssociateTextWithLegislation = (
 			}
 		}
 
-		const foundDefinedTerms = findLegislationDefinedTermsInCaseText(
-			legislation.title,
-			text
-		);
+		const foundDefinedTerms = findLegislationDefinedTermsInCaseText(legislation.title, text);
 
 		if (foundDefinedTerms) {
-			foundDefinedTerms.forEach(found => {
+			foundDefinedTerms.forEach((found) => {
 				definedTermReferences.push({
 					legislationId: legislation.id,
-					name: found[1].trim().replace(/'|"/g, ""),
+					name: found[1].trim().replace(/'|"/g, ''),
 					indexesInCase: [],
 					sections: []
 				});
@@ -216,13 +179,10 @@ const findAndAssociateTextWithLegislation = (
 	});
 
 	// Find definedTerms indices
-	definedTermReferences.forEach(term => {
-		const foundDefinedTermIndices = findDefinedTermIndicesInCaseText(
-			term.name,
-			text
-		);
+	definedTermReferences.forEach((term) => {
+		const foundDefinedTermIndices = findDefinedTermIndicesInCaseText(term.name, text);
 		if (foundDefinedTermIndices) {
-			foundDefinedTermIndices.forEach(found => {
+			foundDefinedTermIndices.forEach((found) => {
 				term.indexesInCase.push(found.index);
 			});
 		}
@@ -248,31 +208,19 @@ const findAndAssociateTextWithLegislation = (
 		let offset = 2;
 
 		// Find the right legislation at aggregate word index
-		const currentLegislationCheck = findLegislationAtIndex(
-			wordIndices[i],
-			legislationReferences
-		);
+		const currentLegislationCheck = findLegislationAtIndex(wordIndices[i], legislationReferences);
 
 		if (currentLegislationCheck) {
 			currentLegislation = currentLegislationCheck;
 		} else {
-			const currentDefinedTermCheck = findDefinedTermAtIndex(
-				wordIndices[i],
-				legislationReferences
-			);
+			const currentDefinedTermCheck = findDefinedTermAtIndex(wordIndices[i], legislationReferences);
 			if (currentDefinedTermCheck) {
-				currentLegislation = findLegislationById(
-					currentDefinedTermCheck.legislationId,
-					legislationReferences
-				);
+				currentLegislation = findLegislationById(currentDefinedTermCheck.legislationId, legislationReferences);
 			}
 		}
 
 		if (
-			((word === "s" ||
-				word === "section" ||
-				word === "ss" ||
-				word === "sections") &&
+			((word === 's' || word === 'section' || word === 'ss' || word === 'sections') &&
 				(nextWord && nextWord.match(/[0-9]+/))) ||
 			// catch cases with no space between s and number e.g s47 instead of s 47
 			(nextWord && nextWord.match(/^s[0-9]+/))
@@ -284,9 +232,9 @@ const findAndAssociateTextWithLegislation = (
 			while (
 				i + offset < caseWords.length &&
 				(caseWords[i + offset].match(/[0-9]+/) ||
-					caseWords[i + offset] === "and" ||
-					caseWords[i + offset] === "to" ||
-					caseWords[i + offset] === "-") &&
+					caseWords[i + offset] === 'and' ||
+					caseWords[i + offset] === 'to' ||
+					caseWords[i + offset] === '-') &&
 				!caseWords[i + offset - 1].match(/\.$/) // terminate if word ends on full stop (won't terminate on subsection period)
 			) {
 				multiSection = true;
@@ -308,10 +256,10 @@ const findAndAssociateTextWithLegislation = (
 					- section 57 under the <Legislation Title>
 					*/
 			if (
-				(caseWords[i + offset] === "under" ||
-					caseWords[i + offset] === "of" ||
-					caseWords[i + offset] === "in") &&
-				caseWords[i + offset + 1] === "the"
+				(caseWords[i + offset] === 'under' ||
+					caseWords[i + offset] === 'of' ||
+					caseWords[i + offset] === 'in') &&
+				caseWords[i + offset + 1] === 'the'
 			) {
 				// Check if the index matches that of a missing year index
 				const checkForMissingYear = findLegislationMissingYearAtIndex(
@@ -320,17 +268,11 @@ const findAndAssociateTextWithLegislation = (
 				);
 
 				// First test for definedTerms --- changed to search by index to account for multi-word terms
-				var foundDefinedTerm = findDefinedTermAtIndex(
-					wordIndices[i + offset + 2],
-					definedTermReferences
-				);
+				var foundDefinedTerm = findDefinedTermAtIndex(wordIndices[i + offset + 2], definedTermReferences);
 
 				// Handles edge case where definedTerm is "the <definedTerm>" eg "the act", so first word includes "the"
 				if (!foundDefinedTerm) {
-					foundDefinedTerm = findDefinedTermAtIndex(
-						wordIndices[i + offset + 1],
-						definedTermReferences
-					);
+					foundDefinedTerm = findDefinedTermAtIndex(wordIndices[i + offset + 1], definedTermReferences);
 				}
 
 				if (foundDefinedTerm) {
@@ -341,12 +283,7 @@ const findAndAssociateTextWithLegislation = (
 					associatedLegislation.sections.push(nextWord);
 					// If multiple sections, iterate through each one
 					if (multiSection) {
-						iterateThroughMultipleSections(
-							offset,
-							oldi,
-							associatedLegislation,
-							caseWords
-						);
+						iterateThroughMultipleSections(offset, oldi, associatedLegislation, caseWords);
 					}
 					i += 1;
 
@@ -357,12 +294,7 @@ const findAndAssociateTextWithLegislation = (
 					checkForMissingYear.sections.push(nextWord);
 					// If multiple sections, iterate through each one
 					if (multiSection) {
-						iterateThroughMultipleSections(
-							offset,
-							oldi,
-							checkForMissingYear,
-							caseWords
-						);
+						iterateThroughMultipleSections(offset, oldi, checkForMissingYear, caseWords);
 					}
 
 					currentLegislation = checkForMissingYear;
@@ -372,14 +304,12 @@ const findAndAssociateTextWithLegislation = (
 					let startWordIndex = i + offset + 2;
 					let currentTestWordIndex = 0;
 					let maxLegislationTitleLengthFinish = MAX_LEGISLATION_TITLE_WORDS_LENGTH;
-					let allLegislationTitlesAndId = [...legislationReferences].map(
-						legislation => {
-							return {
-								id: legislation.id,
-								legislationTitleWords: legislation.legislationTitleWords
-							};
-						}
-					);
+					let allLegislationTitlesAndId = [ ...legislationReferences ].map((legislation) => {
+						return {
+							id: legislation.id,
+							legislationTitleWords: legislation.legislationTitleWords
+						};
+					});
 					while (
 						!subsequentLegislationReference &&
 						currentTestWordIndex !== maxLegislationTitleLengthFinish &&
@@ -394,13 +324,12 @@ const findAndAssociateTextWithLegislation = (
 							console.log(ex);
 							break;
 						}
-						allLegislationTitlesAndId = allLegislationTitlesAndId.filter(
-							legislation =>
-								legislationTitleHasWordAtWordIndex(
-									currentTestWordIndex,
-									testWord,
-									legislation.legislationTitleWords
-								)
+						allLegislationTitlesAndId = allLegislationTitlesAndId.filter((legislation) =>
+							legislationTitleHasWordAtWordIndex(
+								currentTestWordIndex,
+								testWord,
+								legislation.legislationTitleWords
+							)
 						);
 
 						if (allLegislationTitlesAndId.length === 1) {
@@ -420,12 +349,7 @@ const findAndAssociateTextWithLegislation = (
 
 						// If multiple sections, iterate through each one
 						if (multiSection) {
-							iterateThroughMultipleSections(
-								offset,
-								oldi,
-								subsequentLegislationReference,
-								caseWords
-							);
+							iterateThroughMultipleSections(offset, oldi, subsequentLegislationReference, caseWords);
 						}
 						// Update current legislation (or block current legislation)
 
@@ -437,12 +361,7 @@ const findAndAssociateTextWithLegislation = (
 					currentLegislation.sections.push(nextWord);
 					// If multiple sections, iterate through each one
 					if (multiSection) {
-						iterateThroughMultipleSections(
-							offset,
-							oldi,
-							currentLegislation,
-							caseWords
-						);
+						iterateThroughMultipleSections(offset, oldi, currentLegislation, caseWords);
 					}
 				}
 			}
@@ -451,27 +370,21 @@ const findAndAssociateTextWithLegislation = (
 };
 
 function flattenDeep(arr1) {
-	return arr1.reduce(
-		(acc, val) =>
-			Array.isArray(val) ? acc.concat(flattenDeep(val)) : acc.concat(val),
-		[]
-	);
+	return arr1.reduce((acc, val) => (Array.isArray(val) ? acc.concat(flattenDeep(val)) : acc.concat(val)), []);
 }
 
-const run = async (connection, logDir) => {
-	console.log("\n-----------------------------------");
-	console.log("Parse legislation to cases");
-	console.log("-----------------------------------\n");
+const run = async (pgPromise, connection, logDir) => {
+	console.log('\n-----------------------------------');
+	console.log('Parse legislation to cases');
+	console.log('-----------------------------------\n');
 
 	setLogDir(logDir);
 	setLogFile(__filename);
 
-	console.log("Loading all cases");
-
-	const [[cases, legislations]] = await connection.query(`
-		SELECT * FROM cases.cases; 
-		SELECT * FROM cases.legislation;
-	`);
+	console.log('Loading all cases');
+	const [ cases, legislations ] = await connection.multi(
+		'SELECT * FROM cases.cases; SELECT * FROM cases.legislation'
+	);
 
 	const casesLength = cases.length;
 
@@ -480,63 +393,60 @@ const run = async (connection, logDir) => {
 
 		const legalCase = cases[x];
 
-		const { legislationReferences, extractionConfidence } = processCase(
-			legalCase,
-			legislations
-		);
+		const { legislationReferences, extractionConfidence } = processCase(legalCase, legislations);
 
 		let insertValues = [];
 
-		await connection.beginTransaction();
-
-		try {
-			if (legislationReferences.length > 0) {
-				legislationReferences.forEach(legislationReference => {
-					Object.keys(legislationReference.groupedSections).forEach(
-						sectionKey => {
+		await connection
+			.tx((t) => {
+				if (legislationReferences.length > 0) {
+					legislationReferences.forEach((legislationReference) => {
+						Object.keys(legislationReference.groupedSections).forEach((sectionKey) => {
 							const section = legislationReference.groupedSections[sectionKey];
-							insertValues.push([
-								legislationReference.id,
-								sectionKey,
-								legalCase.id,
-								section.count
-							]);
-						}
-					);
+							insertValues.push({
+								legislation_id: legislationReference.id,
+								section: sectionKey,
+								case_id: legalCase.id,
+								count: section.count
+							});
+						});
+					});
+
+					const cs = new pgPromise.helpers.ColumnSet([ 'legislation_id', 'section', 'case_id', 'count' ], {
+						table: 'legislation_to_cases'
+					});
+					const query = pgPromise.helpers.insert(insertValues, cs);
+
+					return t.none(query);
+				}
+
+				const cs = new pgPromise.helpers.ColumnSet([ 'extraction_confidence' ], {
+					table: 'cases'
 				});
+				const values = {
+					extraction_confidence: extractionConfidence
+				};
+				const query = pgPromise.helpers.update(values, cs);
 
-				await connection.query(
-					"INSERT INTO legislation_to_cases (legislation_id, section, case_id, count) VALUES ?",
-					[insertValues]
+				return t.none(query);
+			})
+			.then((data) => {
+				console.log('COMMIT was executed');
+			})
+			.catch((error) => {
+				console.log('[!] Processing error');
+				log(
+					JSON.stringify(insertValues, null, 4) +
+						'\nExtraction confidence' +
+						extractionConfidence +
+						'\n' +
+						error,
+					false,
+					'processingerror-' + legalCase.id
 				);
-			}
-
-			await connection.query(
-				"UPDATE cases SET ? WHERE id = ?",
-				[
-					{
-						extraction_confidence: extractionConfidence
-					},
-					legalCase.id
-				]
-			);
-
-			await connection.commit();
-		} catch (ex) {
-			await connection.rollback();
-			console.log('[!] Processing error');
-			log(
-				JSON.stringify(insertValues, null, 4) +
-					"\nExtraction confidence" +
-					extractionConfidence +
-					"\n" +
-					ex,
-				false,
-				"processingerror-" + legalCase.id
-			);
-			//console.log(legislationReferences)
-			//console.log(insertValues)
-		}
+				//console.log(legislationReferences)
+				//console.log(insertValues)
+			});
 	}
 };
 
@@ -545,13 +455,13 @@ const processCase = (legalCase, legislations) => {
 	let uniqueLegislations = [];
 	let allLegislations = legislations.slice(0);
 
-	allLegislations.forEach(legislation => {
-		if (!uniqueLegislations.some(l => l.title == legislation.title)) {
+	allLegislations.forEach((legislation) => {
+		if (!uniqueLegislations.some((l) => l.title == legislation.title)) {
 			uniqueLegislations.push(legislation);
 		}
 	});
 
-	let legislationReferences = uniqueLegislations.map(legislation => {
+	let legislationReferences = uniqueLegislations.map((legislation) => {
 		return {
 			indexesInCase: [],
 			indexesMissingYear: [],
@@ -562,24 +472,20 @@ const processCase = (legalCase, legislations) => {
 	});
 
 	let case_text = legalCase.case_text;
-	const footnotes = legalCase.case_footnotes
-		? legalCase.case_footnotes.split("\n")
-		: [];
-	const footnoteContexts = legalCase.case_footnote_contexts
-		? legalCase.case_footnote_contexts.split("\n")
-		: [];
+	const footnotes = legalCase.case_footnotes ? legalCase.case_footnotes.split('\n') : [];
+	const footnoteContexts = legalCase.case_footnote_contexts ? legalCase.case_footnote_contexts.split('\n') : [];
 
 	if (footnotes.length > 0 && legalCase.case_footnotes_exist_in_text) {
 		// Remove footnotes from case
 		try {
-			footnotes.forEach(f => {
-				let matchStr = RegExp.escape(f.trim()).replace(/\s+/g, "\\s+");
-				case_text = case_text.replace(new RegExp(matchStr), "");
+			footnotes.forEach((f) => {
+				let matchStr = RegExp.escape(f.trim()).replace(/\s+/g, '\\s+');
+				case_text = case_text.replace(new RegExp(matchStr), '');
 			});
 
 			extractionConfidence = 1;
 		} catch (ex) {
-			console.log("Footnotes do not exist in text");
+			console.log('Footnotes do not exist in text');
 			console.log(ex);
 		}
 	}
@@ -588,22 +494,16 @@ const processCase = (legalCase, legislations) => {
 
 	const allLegislationReferenceIndexes = flattenDeep(
 		legislationReferences
-			.filter(
-				b => b.indexesInCase.length > 0 || b.indexesMissingYear.length > 0
-			)
-			.map(b => [b.indexesInCase, b.indexesMissingYear])
+			.filter((b) => b.indexesInCase.length > 0 || b.indexesMissingYear.length > 0)
+			.map((b) => [ b.indexesInCase, b.indexesMissingYear ])
 	).sort();
 
 	if (footnotes.length === 0 && footnoteContexts.length === 0) {
 		extractionConfidence = 2;
-	} else if (
-		footnoteContexts.length > 0 &&
-		legalCase.case_footnotes_are_valid
-	) {
+	} else if (footnoteContexts.length > 0 && legalCase.case_footnotes_are_valid) {
 		try {
 			footnoteContexts.forEach((f, fi) => {
-				const footnoteContextIndex =
-					case_text.match(RegExp.escape(f)).index + f.length;
+				const footnoteContextIndex = case_text.match(RegExp.escape(f)).index + f.length;
 
 				// Look through the legislation references and find the closest to get the start
 				let foundCurrentLegislationIndex = null;
@@ -618,57 +518,39 @@ const processCase = (legalCase, legislations) => {
 				}
 				const foundLegislation =
 					foundCurrentLegislationIndex !== null
-						? findLegislationAtIndex(
-								foundCurrentLegislationIndex,
-								legislationReferences
-						  ) ||
-						  findLegislationMissingYearAtIndex(
-								foundCurrentLegislationIndex,
-								legislationReferences
-						  )
+						? findLegislationAtIndex(foundCurrentLegislationIndex, legislationReferences) ||
+							findLegislationMissingYearAtIndex(foundCurrentLegislationIndex, legislationReferences)
 						: null;
 				//console.log(foundLegislation)
 				//console.log("associate", foundLegislation, footnotes[fi]);
-				findAndAssociateTextWithLegislation(
-					footnotes[fi],
-					legislationReferences,
-					foundLegislation
-				);
+				findAndAssociateTextWithLegislation(footnotes[fi], legislationReferences, foundLegislation);
 			});
 
 			extractionConfidence = 2;
 		} catch (ex) {
-			log(
-				JSON.stringify(legalCase, null, 4) + "\n" + ex,
-				false,
-				"footnoteserror-" + legalCase.id
-			);
+			log(JSON.stringify(legalCase, null, 4) + '\n' + ex, false, 'footnoteserror-' + legalCase.id);
 		}
 	}
 
 	legislationReferences = legislationReferences.filter(
-		legislationReference => legislationReference.sections.length > 0
+		(legislationReference) => legislationReference.sections.length > 0
 	);
 
 	if (legislationReferences.length > 0) {
-		legislationReferences = legislationReferences.map(legislationReference => {
+		legislationReferences = legislationReferences.map((legislationReference) => {
 			legislationReference.groupedSections = {};
 			legislationReference.sections = legislationReference.sections
-				.map(section => {
-					if (section.endsWith("))")) {
+				.map((section) => {
+					if (section.endsWith('))')) {
 						section = section.substring(0, section.length - 1);
 					}
-					section = section.split(".")[0];
+					section = section.split('.')[0];
 					return section
-						.replace(
-							/(~|`|!|@|#|$|%|^|&|\*|{|}|\[|\]|;|:|"|'|<|,|>|\?|\/|\\|\||-|_|\+|=)/g,
-							""
-						)
-						.replace(/(s|s\s+)(\d+)/gi, "$2");
+						.replace(/(~|`|!|@|#|$|%|^|&|\*|{|}|\[|\]|;|:|"|'|<|,|>|\?|\/|\\|\||-|_|\+|=)/g, '')
+						.replace(/(s|s\s+)(\d+)/gi, '$2');
 				})
-				.forEach(section => {
-					const [full, mainSection, subSection] =
-						new RegExp(/(\d+)(\(.*\))/gi).exec(section) || [];
+				.forEach((section) => {
+					const [ full, mainSection, subSection ] = new RegExp(/(\d+)(\(.*\))/gi).exec(section) || [];
 
 					// if (mainSection) {
 					// 	if (!legislationReference.groupedSections[mainSection]) {
@@ -701,11 +583,11 @@ const processCase = (legalCase, legislations) => {
 };
 
 if (require.main === module) {
-	const argv = require("yargs").argv;
+	const argv = require('yargs').argv;
 	(async () => {
 		try {
-			const { connection, logDir } = await require("../common/setup")(argv.env);
-			await run(connection, logDir);
+			const { pgPromise, connection, logDir } = await require('../common/setup')(argv.env);
+			await run(pgPromise, connection, logDir);
 		} catch (ex) {
 			console.log(ex);
 		}
